@@ -1,0 +1,219 @@
+@import "tailwindcss";
+
+/* Luxury Emerald Obsidian & Prism Glass Theme */
+:root {
+  --bg-primary: #030F0D;
+  --bg-card: rgba(6, 35, 30, 0.65);
+  --bg-elevated: rgba(10, 48, 41, 0.55);
+  --bg-inset: rgba(2, 18, 15, 0.7);
+  --text-primary: #F8FAFC;
+  --text-muted: #94D3C7;
+  --accent: #10B981;
+  --accent-hover: #34D399;
+  --accent-glow: rgba(16, 185, 129, 0.25);
+  --border: rgba(110, 231, 183, 0.15);
+  --border-highlight: rgba(167, 243, 208, 0.3);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Marcellus', serif, system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.015em;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.07) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(5, 150, 105, 0.05) 0px, transparent 60%),
+    radial-gradient(at 100% 100%, rgba(13, 148, 136, 0.08) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4, h5, h6, button, input, select, textarea {
+  font-family: 'Marcellus', serif, system-ui, sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { 
+  background: rgba(110, 231, 183, 0.2); 
+  border-radius: 9999px; 
+}
+::-webkit-scrollbar-thumb:hover { 
+  background: rgba(110, 231, 183, 0.4); 
+}
+
+/* ===== Luxury Glassmorphism Utilities ===== */
+
+/* Primary Glass Card */
+.glass-card, .clay {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.07) 0%, rgba(6, 35, 30, 0.7) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(167, 243, 208, 0.25);
+  border-radius: 24px;
+  box-shadow: 
+    0 20px 40px -15px rgba(0, 0, 0, 0.6),
+    0 0 25px -5px rgba(16, 185, 129, 0.05),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Elevated Glass Surface */
+.glass-elevated, .clay-elevated {
+  background: linear-gradient(135deg, rgba(20, 83, 72, 0.35) 0%, rgba(6, 35, 30, 0.5) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(110, 231, 183, 0.12);
+  border-top: 1px solid rgba(167, 243, 208, 0.2);
+  border-radius: 20px;
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.25s ease;
+}
+
+/* Recessed Inset Glass for Inputs & Controls */
+.glass-inset, .clay-inset {
+  background: rgba(2, 18, 15, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(110, 231, 183, 0.12);
+  border-radius: 16px;
+  box-shadow: 
+    inset 0 2px 6px rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: all 0.2s ease;
+}
+
+.glass-inset:focus-within, .clay-inset:focus-within {
+  border-color: rgba(110, 231, 183, 0.4);
+  box-shadow: 
+    inset 0 2px 6px rgba(0, 0, 0, 0.5),
+    0 0 16px rgba(16, 185, 129, 0.2);
+}
+
+/* Glass Buttons */
+.glass-btn, .clay-btn {
+  background: rgba(16, 185, 129, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(110, 231, 183, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 
+    0 4px 14px rgba(0, 0, 0, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-btn:hover, .clay-btn:hover {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: rgba(110, 231, 183, 0.4);
+  box-shadow: 
+    0 6px 20px rgba(16, 185, 129, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.glass-btn:active, .clay-btn:active {
+  transform: translateY(0);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Primary Luxury Luminous Button */
+.glass-btn-primary {
+  background: linear-gradient(135deg, #10B981 0%, #0D9488 60%, #047857 100%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  box-shadow: 
+    0 8px 25px -4px rgba(16, 185, 129, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  color: #FFFFFF;
+  font-weight: 700;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-btn-primary:hover {
+  background: linear-gradient(135deg, #34D399 0%, #14B8A6 60%, #059669 100%);
+  box-shadow: 
+    0 12px 30px -4px rgba(16, 185, 129, 0.6),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  transform: translateY(-1.5px);
+}
+
+.glass-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Glass Navigation Items */
+.glass-nav, .clay-nav {
+  border-radius: 14px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.glass-nav:hover, .clay-nav:hover {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(110, 231, 183, 0.12);
+  color: #FFFFFF;
+}
+
+.glass-nav-active, .clay-nav-active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(6, 78, 67, 0.35) 100%) !important;
+  border: 1px solid rgba(110, 231, 183, 0.3) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 14px;
+  box-shadow: 
+    0 4px 16px rgba(16, 185, 129, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  color: #FFFFFF !important;
+}
+
+/* Glass Sidebar */
+.glass-sidebar, .clay-sidebar {
+  background: linear-gradient(180deg, rgba(4, 25, 21, 0.8) 0%, rgba(2, 18, 15, 0.9) 100%);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border-right: 1px solid rgba(110, 231, 183, 0.1);
+  box-shadow: 4px 0 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Glass Pill Badge */
+.glass-badge, .clay-badge {
+  border-radius: 9999px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+/* Glass Modal Overlay */
+.glass-overlay, .clay-overlay {
+  background: rgba(1, 12, 10, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Recharts Glass Tooltip */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: rgba(4, 28, 23, 0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(110, 231, 183, 0.25) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Date / Select Input */
+input[type="date"]::-webkit-calendar-picker-indicator,
+select {
+  filter: invert(0.85) hue-rotate(130deg) brightness(1.2);
+}

@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  isVerified Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  expenses          Expense[]
+  sharedExpenses    SharedExpense[]
+  participations    Participant[]
+  recurringPatterns RecurringPattern[]
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  type      String   // REGISTER, CHANGE_PASSWORD, CHANGE_EMAIL
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, type])
+}
+
+model Expense {
+  id                String    @id @default(uuid())
+  userId            String
+  amount            Float
+  category          String
+  description       String    @default("")
+  date              DateTime
+  isRecurring       Boolean   @default(false)
+  recurringInterval String?   // weekly, monthly
+  createdAt         DateTime  @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedExpense SharedExpense?
+
+  @@index([userId, date])
+  @@index([userId, category])
+}
+
+model SharedExpense {
+  id              String @id @default(uuid())
+  expenseId       String @unique
+  createdByUserId String
+
+  expense     Expense       @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  createdBy   User          @relation(fields: [createdByUserId], references: [id])
+  participants Participant[]
+}
+
+model Participant {
+  id              String  @id @default(uuid())
+  sharedExpenseId String
+  userId          String
+  amountOwed      Float
+  settled         Boolean @default(false)
+
+  sharedExpense SharedExpense @relation(fields: [sharedExpenseId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id])
+
+  @@unique([sharedExpenseId, userId])
+}
+
+model RecurringPattern {
+  id              String   @id @default(uuid())
+  userId          String
+  category        String
+  avgAmount       Float
+  avgIntervalDays Float
+  lastOccurrence  DateTime
+  dataPoints      Int
+  confidence      Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+}
