@@ -5,7 +5,8 @@ import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
-// Pages (to be implemented)
+// Pages
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -21,20 +22,22 @@ function App() {
       <AuthProvider>
         <Router>
           <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          <Route path="/" element={<ProtectedRoute />}>
-            <Route element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="expenses" element={<Expenses />} />
-              <Route path="forecast" element={<Forecast />} />
-              <Route path="splits" element={<Splits />} />
-              <Route path="insights" element={<Insights />} />
-              <Route path="profile" element={<Profile />} />
+            <Route path="/landing" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            
+            <Route path="/" element={<ProtectedRoute />}>
+              <Route element={<Layout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="expenses" element={<Expenses />} />
+                <Route path="forecast" element={<Forecast />} />
+                <Route path="splits" element={<Splits />} />
+                <Route path="insights" element={<Insights />} />
+                <Route path="profile" element={<Profile />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
+          </Routes>
         </Router>
       </AuthProvider>
     </ThemeProvider>
