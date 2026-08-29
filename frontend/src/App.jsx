@@ -20,16 +20,24 @@ function ScrollToTop() {
   return null;
 }
 
-// Pages
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Expenses from './pages/Expenses';
-import Forecast from './pages/Forecast';
-import Splits from './pages/Splits';
-import Insights from './pages/Insights';
-import Profile from './pages/Profile';
+// Route-level Dynamic Code Splitting
+const Landing = React.lazy(() => import('./pages/Landing'));
+const Login = React.lazy(() => import('./pages/Login'));
+const Register = React.lazy(() => import('./pages/Register'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Expenses = React.lazy(() => import('./pages/Expenses'));
+const Forecast = React.lazy(() => import('./pages/Forecast'));
+const Splits = React.lazy(() => import('./pages/Splits'));
+const Insights = React.lazy(() => import('./pages/Insights'));
+const Profile = React.lazy(() => import('./pages/Profile'));
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
+      <div className="w-9 h-9 border-3 border-emerald-400/20 border-t-emerald-400 rounded-full animate-spin"></div>
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -37,28 +45,30 @@ function App() {
       <AuthProvider>
         <Router>
           <ScrollToTop />
-          <Routes>
-            {/* Public Default Landing Page */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/landing" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            
-            {/* Protected Workspace Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<Layout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/expenses" element={<Expenses />} />
-                <Route path="/forecast" element={<Forecast />} />
-                <Route path="/splits" element={<Splits />} />
-                <Route path="/insights" element={<Insights />} />
-                <Route path="/profile" element={<Profile />} />
+          <React.Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Public Default Landing Page */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/landing" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* Protected Workspace Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<Layout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/expenses" element={<Expenses />} />
+                  <Route path="/forecast" element={<Forecast />} />
+                  <Route path="/splits" element={<Splits />} />
+                  <Route path="/insights" element={<Insights />} />
+                  <Route path="/profile" element={<Profile />} />
+                </Route>
               </Route>
-            </Route>
 
-            {/* Catch-all redirect to Landing */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Catch-all redirect to Landing */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </React.Suspense>
         </Router>
       </AuthProvider>
     </ThemeProvider>
