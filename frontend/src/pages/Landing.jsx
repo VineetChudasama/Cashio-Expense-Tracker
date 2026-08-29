@@ -682,24 +682,18 @@ const Landing = () => {
       {/* Floating Card Luxury Footer */}
       <footer className="relative pt-6 sm:pt-8 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Ambient Brand Watermark spanning the exact full width of the box with bottom fade-out */}
-        <div className="w-full overflow-hidden select-none pointer-events-none -mb-6 sm:-mb-14 relative z-0 flex justify-center">
+        <div 
+          className="w-full overflow-hidden select-none pointer-events-none -mb-6 sm:-mb-14 relative z-0 flex justify-center"
+          style={{
+            maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0) 88%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0) 88%)',
+          }}
+        >
           <svg 
             viewBox="0 0 1000 180" 
-            className="w-full h-100 select-none pointer-events-none"
+            className="w-full h-auto select-none pointer-events-none"
             preserveAspectRatio="none"
           >
-            <defs>
-              <linearGradient id="cashFade" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={isDark ? '#E2E8F0' : '#147D70'} stopOpacity={isDark ? '0.45' : '0.35'} />
-                <stop offset="55%" stopColor={isDark ? '#E2E8F0' : '#147D70'} stopOpacity={isDark ? '0.22' : '0.15'} />
-                <stop offset="92%" stopColor={isDark ? '#E2E8F0' : '#147D70'} stopOpacity="0" />
-              </linearGradient>
-              <linearGradient id="ioFade" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={isDark ? '#34D399' : '#3BAE9F'} stopOpacity={isDark ? '0.75' : '0.65'} />
-                <stop offset="55%" stopColor={isDark ? '#34D399' : '#3BAE9F'} stopOpacity={isDark ? '0.38' : '0.28'} />
-                <stop offset="92%" stopColor={isDark ? '#34D399' : '#3BAE9F'} stopOpacity="0" />
-              </linearGradient>
-            </defs>
             <text
               x="0"
               y="155"
@@ -708,9 +702,9 @@ const Landing = () => {
               fontFamily="Array-BoldWide, sans-serif"
               fontWeight="700"
               fontSize="175"
+              fill={isDark ? '#34D399' : '#147D70'}
             >
-              <tspan fill="url(#cashFade)">Cash</tspan>
-              <tspan fill="url(#ioFade)">io</tspan>
+              Cashio
             </text>
           </svg>
         </div>
