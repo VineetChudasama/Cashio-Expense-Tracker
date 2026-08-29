@@ -9,8 +9,8 @@ export default defineConfig({
     tailwindcss(),
   ],
   build: {
-    chunkSizeWarningLimit: 600,
-    rolldownOptions: {
+    chunkSizeWarningLimit: 2500,
+    rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
@@ -23,8 +23,23 @@ export default defineConfig({
             if (id.includes('lucide-react')) {
               return 'icons';
             }
-            if (id.includes('@supabase') || id.includes('axios')) {
-              return 'api';
+            return 'vendor';
+          }
+        },
+      },
+    },
+    rolldownOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('recharts') || id.includes('d3-')) {
+              return 'charts';
+            }
+            if (id.includes('framer-motion')) {
+              return 'motion';
+            }
+            if (id.includes('lucide-react')) {
+              return 'icons';
             }
             return 'vendor';
           }
