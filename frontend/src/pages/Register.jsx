@@ -3,16 +3,20 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, Eye, EyeOff, MailCheck, ShieldCheck, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { auth as authApi } from '../lib/api';
+import PasswordRequirements, { checkPasswordCriteria } from '../components/PasswordRequirements';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Register = () => {
+  const { isDark, logoUrl } = useTheme();
   const [step, setStep] = useState(1); // 1: details, 2: otp verification
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordRules, setShowPasswordRules] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [devCode, setDevCode] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -37,6 +41,27 @@ const Register = () => {
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Strict Password Validation
+    const criteria = checkPasswordCriteria(password);
+    if (!criteria.allValid) {
+      setShowPasswordRules(true);
+      if (!criteria.isMinLength) {
+        setError('Password must be at least 10 characters long.');
+      } else if (!criteria.hasUppercase) {
+        setError('Password must include at least 1 uppercase letter (A-Z).');
+      } else if (!criteria.hasLowercase) {
+        setError('Password must include at least 1 lowercase letter (a-z).');
+      } else if (!criteria.hasNumber) {
+        setError('Password must include at least 1 number (0-9).');
+      } else if (!criteria.hasSpecial) {
+        setError('Password must include at least 1 special character (!@#$%...).');
+      } else if (!criteria.isNotCommon) {
+        setError('This password is too common or easily guessable. Please choose a stronger password.');
+      }
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -45,7 +70,6 @@ const Register = () => {
         if (res.requireVerification) {
           setStep(2);
           setResendTimer(60);
-          if (res.devCode) setDevCode(res.devCode);
         } else {
           navigate('/');
         }
@@ -118,7 +142,6 @@ const Register = () => {
       if (res.success) {
         setResendMessage('A new verification code has been dispatched to your email.');
         setResendTimer(60);
-        if (res.devCode) setDevCode(res.devCode);
         setTimeout(() => setResendMessage(''), 4000);
       } else {
         setError(res.error || 'Failed to resend verification code');
@@ -132,6 +155,11 @@ const Register = () => {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-[var(--bg-primary)] px-4 py-8 overflow-hidden selection:bg-[#10B981]/30 selection:text-[#34D399]">
+      {/* Top-Right Theme Switcher Button */}
+      <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-30">
+        <ThemeToggle />
+      </div>
+
       {/* Ambient background light orbs */}
       <div className="fixed top-[15%] left-[20%] w-[35vw] h-[35vw] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[15%] right-[20%] w-[35vw] h-[35vw] rounded-full bg-teal-500/10 blur-[130px] pointer-events-none"></div>
@@ -140,15 +168,15 @@ const Register = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-md glass-card p-8 sm:p-10 border border-white/10 relative z-10"
+        className="w-full max-w-md glass-card p-5 sm:p-10 border border-white/10 relative z-10"
       >
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-400 p-[1.5px] shadow-lg shadow-emerald-500/25 mx-auto mb-3">
-            <div className="w-full h-full bg-[#031512] rounded-2xl flex items-center justify-center text-emerald-300">
-              {step === 1 ? <Sparkles size={22} className="animate-pulse" /> : <MailCheck size={22} className="text-emerald-300" />}
-            </div>
-          </div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Flow</h1>
+          <img 
+            src={logoUrl} 
+            alt="Cashio Logo" 
+            className="w-16 h-16 object-contain mx-auto mb-2 drop-shadow-[0_0_18px_rgba(16,185,129,0.45)] hover:scale-105 transition-transform duration-300" 
+          />
+          <h1 className="text-3xl font-black text-white tracking-tight">Cashio</h1>
           <p className="text-xs font-semibold text-emerald-300/80 mt-1">
             {step === 1 ? 'Create your smart finance workspace' : 'Authenticate Your Email Address'}
           </p>
@@ -214,10 +242,13 @@ const Register = () => {
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (!showPasswordRules) setShowPasswordRules(true);
+                  }}
+                  onFocus={() => setShowPasswordRules(true)}
                   className="w-full glass-inset pl-4 pr-11 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                  placeholder="••••••••"
-                  minLength={6}
+                  placeholder="••••••••••"
                 />
                 <button
                   type="button"
@@ -229,6 +260,12 @@ const Register = () => {
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
+
+              {/* Interactive Password Requirements Checklist (Hidden unless clicked / focused) */}
+              <PasswordRequirements 
+                password={password} 
+                isVisible={showPasswordRules} 
+              />
             </div>
 
             <button
@@ -258,13 +295,6 @@ const Register = () => {
               </p>
             </div>
 
-            {devCode && (
-              <div className="p-3 rounded-xl bg-teal-950/40 border border-teal-400/30 text-center">
-                <p className="text-[11px] font-bold text-teal-300 uppercase tracking-wider">Development Testing Code</p>
-                <p className="text-xl font-black text-white tracking-widest mt-0.5">{devCode}</p>
-              </div>
-            )}
-
             <div>
               <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-2 text-center">
                 Enter 6-Digit Code
@@ -291,7 +321,7 @@ const Register = () => {
               ) : (
                 <>
                   <ShieldCheck size={18} />
-                  <span>Verify & Enter Flow</span>
+                  <span>Verify & Enter Cashio</span>
                 </>
               )}
             </button>

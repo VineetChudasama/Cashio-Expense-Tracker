@@ -1,27 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ArrowDown, CheckCircle2, Check } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 const SettleUpFlow = ({ transactions, onSettle }) => {
+  const { isDark } = useTheme();
+  const [settlingIndex, setSettlingIndex] = useState(null);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 }
+      transition: { staggerChildren: 0.08 }
     }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, x: -15 },
-    show: { opacity: 1, x: 0 }
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0 }
+  };
+
+  const handleMarkSettled = async (tx, idx) => {
+    setSettlingIndex(idx);
+    try {
+      await onSettle(tx);
+    } finally {
+      setSettlingIndex(null);
+    }
   };
 
   if (!transactions || transactions.length === 0) {
     return (
-      <div className="text-center py-14 text-slate-400 glass-elevated p-8">
-        <CheckCircle2 className="mx-auto text-emerald-400 mb-3 opacity-60" size={44} />
-        <h3 className="text-base font-bold text-white">All settled up!</h3>
-        <p className="text-xs text-slate-400 mt-1">There are no outstanding balances to settle right now.</p>
+      <div className="text-center py-14 text-[var(--text-muted)] glass-elevated p-6 sm:p-8 rounded-2xl">
+        <CheckCircle2 className="mx-auto text-emerald-500 mb-3 opacity-70" size={40} />
+        <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)]">All settled up!</h3>
+        <p className="text-xs text-[var(--text-muted)] mt-1">There are no outstanding balances to settle right now.</p>
       </div>
     );
   }
@@ -31,39 +44,75 @@ const SettleUpFlow = ({ transactions, onSettle }) => {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-4"
+      className="space-y-3.5"
     >
-      {transactions.map((tx, idx) => (
-        <motion.div 
-          variants={itemVariants} 
-          key={idx} 
-          className="glass-elevated p-4 lg:p-5 flex flex-col sm:flex-row justify-between items-center gap-4 hover:translate-x-1 border border-white/[0.06] hover:border-emerald-400/30 transition-all duration-200"
-        >
-          <div className="flex items-center gap-3 flex-1 w-full min-w-0">
-            <div className="flex-1 glass-inset py-3 px-4 text-center font-bold text-sm text-white truncate">
-              {tx.from?.name || tx.from}
-            </div>
-            
-            <div className="flex flex-col items-center px-2 shrink-0">
-              <span className="text-xs font-black bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full mb-1 border border-emerald-400/30 glass-badge">
-                ${tx.amount.toFixed(2)}
-              </span>
-              <ArrowRight size={16} className="text-emerald-400" />
-            </div>
-            
-            <div className="flex-1 glass-inset py-3 px-4 text-center font-bold text-sm text-white truncate">
-              {tx.to?.name || tx.to}
-            </div>
-          </div>
-          
-          <button 
-            onClick={() => onSettle(tx.to?.id || tx.toId)}
-            className="w-full sm:w-auto glass-btn-primary px-5 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap shadow-md shadow-emerald-500/20"
+      {transactions.map((tx, idx) => {
+        const fromName = tx.from?.name || (typeof tx.from === 'string' ? tx.from : 'User');
+        const toName = tx.to?.name || (typeof tx.to === 'string' ? tx.to : 'User');
+        const isSettling = settlingIndex === idx;
+
+        return (
+          <motion.div 
+            variants={itemVariants} 
+            key={idx} 
+            className="glass-elevated p-3.5 sm:p-5 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 border hover:border-emerald-400/30 transition-all duration-200"
           >
-            Mark Settled
-          </button>
-        </motion.div>
-      ))}
+            {/* Peer to Peer settlement summary */}
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              {/* From (Debtor) */}
+              <div className={`w-full sm:flex-1 py-2.5 sm:py-3 px-3.5 text-center font-bold text-xs sm:text-sm truncate rounded-xl border ${
+                isDark 
+                  ? 'glass-inset text-white' 
+                  : 'bg-[#E7F3ED] border-emerald-600/30 text-[#07241E] shadow-xs'
+              }`}>
+                <span className="text-[10px] block font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-0.5">PAYS</span>
+                {fromName}
+              </div>
+              
+              {/* Arrow & Amount */}
+              <div className="flex sm:flex-col items-center justify-center gap-1.5 sm:gap-0 px-2 shrink-0 py-1 sm:py-0">
+                <span className={`text-xs font-black px-3 py-1 rounded-full border shadow-sm ${
+                  isDark 
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' 
+                    : 'bg-emerald-100 text-emerald-950 border-emerald-300 font-bold'
+                }`}>
+                  ${tx.amount.toFixed(2)}
+                </span>
+                <span className="hidden sm:inline text-emerald-500 dark:text-emerald-400 mt-1">
+                  <ArrowRight size={16} />
+                </span>
+                <span className="sm:hidden text-emerald-500 dark:text-emerald-400">
+                  <ArrowDown size={14} />
+                </span>
+              </div>
+              
+              {/* To (Creditor) */}
+              <div className={`w-full sm:flex-1 py-2.5 sm:py-3 px-3.5 text-center font-bold text-xs sm:text-sm truncate rounded-xl border ${
+                isDark 
+                  ? 'glass-inset text-white' 
+                  : 'bg-[#E7F3ED] border-emerald-600/30 text-[#07241E] shadow-xs'
+              }`}>
+                <span className="text-[10px] block font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-0.5">RECEIVES</span>
+                {toName}
+              </div>
+            </div>
+            
+            {/* Action button */}
+            <button 
+              onClick={() => handleMarkSettled(tx, idx)}
+              disabled={isSettling}
+              className="w-full sm:w-auto glass-btn-primary px-5 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap shadow-md shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-1.5 disabled:opacity-50"
+            >
+              {isSettling ? (
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Check size={14} strokeWidth={2.5} />
+              )}
+              <span>{isSettling ? 'Settling...' : 'Mark Settled'}</span>
+            </button>
+          </motion.div>
+        );
+      })}
     </motion.div>
   );
 };

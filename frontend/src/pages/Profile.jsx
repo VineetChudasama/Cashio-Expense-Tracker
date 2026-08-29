@@ -24,6 +24,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { users as usersApi } from '../lib/api';
 import { format } from 'date-fns';
+import PasswordRequirements, { checkPasswordCriteria } from '../components/PasswordRequirements';
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
@@ -41,7 +42,6 @@ const Profile = () => {
   // Email Change OTP Modal State
   const [showEmailOtpModal, setShowEmailOtpModal] = useState(false);
   const [emailOtpCode, setEmailOtpCode] = useState('');
-  const [emailDevCode, setEmailDevCode] = useState('');
   const [isVerifyingEmailOtp, setIsVerifyingEmailOtp] = useState(false);
   const [emailOtpError, setEmailOtpError] = useState('');
 
@@ -52,6 +52,7 @@ const Profile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showNewPasswordRules, setShowNewPasswordRules] = useState(false);
   const [isSendingPasswordOtp, setIsSendingPasswordOtp] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -59,7 +60,6 @@ const Profile = () => {
   // Password Change OTP Modal State
   const [showPasswordOtpModal, setShowPasswordOtpModal] = useState(false);
   const [passwordOtpCode, setPasswordOtpCode] = useState('');
-  const [passwordDevCode, setPasswordDevCode] = useState('');
   const [isVerifyingPasswordOtp, setIsVerifyingPasswordOtp] = useState(false);
   const [passwordOtpError, setPasswordOtpError] = useState('');
 
@@ -70,6 +70,13 @@ const Profile = () => {
         setProfileData(res.data);
         setName(res.data.name || '');
         setEmail(res.data.email || '');
+        if (res.data.currency) {
+          setCurrency(res.data.currency);
+          localStorage.setItem('flow_currency', res.data.currency);
+        } else {
+          const savedCur = localStorage.getItem('flow_currency');
+          if (savedCur) setCurrency(savedCur);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch profile', err);
@@ -82,7 +89,7 @@ const Profile = () => {
     fetchProfile();
   }, []);
 
-  // Update Personal Info (Name / Trigger Email OTP if changed)
+  // Update Personal Info (Name and Currency / Trigger Email OTP if changed)
   const handleUpdateInfo = async (e) => {
     e.preventDefault();
     setInfoError('');
@@ -90,13 +97,26 @@ const Profile = () => {
 
     const isEmailChanged = email.trim().toLowerCase() !== profileData?.email?.toLowerCase();
 
-    // If only name changed
+    // If only name or currency changed
     if (!isEmailChanged) {
       setIsSavingInfo(true);
       try {
-        const res = await usersApi.updateProfile({ name });
+        const isNameChanged = name.trim() !== (profileData?.name || '');
+        const isCurrencyChanged = currency !== (profileData?.currency || 'USD ($)');
+
+        const res = await usersApi.updateProfile({ name: name.trim(), currency });
         if (res.success) {
-          setInfoSuccess('Name updated successfully!');
+          let successMsg = 'Profile details updated successfully!';
+          if (isNameChanged && !isCurrencyChanged) {
+            successMsg = 'Name updated successfully!';
+          } else if (!isNameChanged && isCurrencyChanged) {
+            successMsg = `Currency preference updated to ${currency} successfully!`;
+          } else if (isNameChanged && isCurrencyChanged) {
+            successMsg = 'Name and currency preference updated successfully!';
+          }
+
+          setInfoSuccess(successMsg);
+          localStorage.setItem('flow_currency', currency);
           updateUser(res.data);
           fetchProfile();
           setTimeout(() => setInfoSuccess(''), 4000);
@@ -116,7 +136,6 @@ const Profile = () => {
     try {
       const res = await usersApi.sendEmailOtp({ newEmail: email.trim() });
       if (res.success) {
-        setEmailDevCode(res.devCode || '');
         setEmailOtpCode('');
         setEmailOtpError('');
         setShowEmailOtpModal(true);
@@ -169,13 +188,28 @@ const Profile = () => {
     setPasswordError('');
     setPasswordSuccess('');
 
-    if (newPassword !== confirmPassword) {
-      setPasswordError('New passwords do not match.');
+    // Validate Password Strength Rules
+    const criteria = checkPasswordCriteria(newPassword);
+    if (!criteria.allValid) {
+      setShowNewPasswordRules(true);
+      if (!criteria.isMinLength) {
+        setPasswordError('New password must be at least 10 characters long.');
+      } else if (!criteria.hasUppercase) {
+        setPasswordError('New password must include at least 1 uppercase letter (A-Z).');
+      } else if (!criteria.hasLowercase) {
+        setPasswordError('New password must include at least 1 lowercase letter (a-z).');
+      } else if (!criteria.hasNumber) {
+        setPasswordError('New password must include at least 1 number (0-9).');
+      } else if (!criteria.hasSpecial) {
+        setPasswordError('New password must include at least 1 special character (!@#$%...).');
+      } else if (!criteria.isNotCommon) {
+        setPasswordError('This password is too common or easily guessable. Please choose a stronger password.');
+      }
       return;
     }
 
-    if (newPassword.length < 6) {
-      setPasswordError('New password must be at least 6 characters.');
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match.');
       return;
     }
 
@@ -184,7 +218,6 @@ const Profile = () => {
     try {
       const res = await usersApi.sendPasswordOtp({ currentPassword });
       if (res.success) {
-        setPasswordDevCode(res.devCode || '');
         setPasswordOtpCode('');
         setPasswordOtpError('');
         setShowPasswordOtpModal(true);
@@ -261,26 +294,26 @@ const Profile = () => {
   const isEmailModified = email.trim().toLowerCase() !== profileData?.email?.toLowerCase();
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-12">
+    <div className="space-y-6 sm:space-y-8 max-w-5xl mx-auto pb-12 px-1 sm:px-0">
       {/* Header Banner */}
-      <div className="glass-card p-6 lg:p-8 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
+      <div className="glass-card p-5 sm:p-6 lg:p-8 relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 relative z-10">
           {/* Avatar */}
           <div className="relative group">
-            <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 p-[2px] shadow-xl shadow-emerald-500/25">
-              <div className="w-full h-full bg-[#031512] rounded-3xl flex items-center justify-center text-3xl font-black text-white shadow-inner">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 p-[2px] shadow-xl shadow-emerald-500/25">
+              <div className="w-full h-full bg-[#031512] rounded-3xl flex items-center justify-center text-2xl sm:text-3xl font-black text-white shadow-inner">
                 {profileData?.name?.charAt(0).toUpperCase() || 'U'}
               </div>
             </div>
-            <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-[#030F0D] p-1.5 rounded-xl border border-white/30 shadow-lg">
-              <Sparkles size={14} />
+            <div className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-emerald-500 text-[#030F0D] p-1 sm:p-1.5 rounded-xl border border-white/30 shadow-lg">
+              <Sparkles size={13} />
             </div>
           </div>
 
           {/* User Info */}
           <div className="text-center sm:text-left flex-1 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
-              <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight truncate">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 mb-1">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight truncate">
                 {profileData?.name || 'User Profile'}
               </h1>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 glass-badge self-center sm:self-auto">
@@ -288,9 +321,9 @@ const Profile = () => {
                 Verified Pro
               </span>
             </div>
-            <p className="text-xs lg:text-sm text-slate-300 font-medium mb-3 flex items-center justify-center sm:justify-start gap-1.5">
-              <Mail size={14} className="text-emerald-400" />
-              <span>{profileData?.email}</span>
+            <p className="text-xs sm:text-sm text-slate-300 font-medium mb-2.5 flex items-center justify-center sm:justify-start gap-1.5 truncate">
+              <Mail size={14} className="text-emerald-400 shrink-0" />
+              <span className="truncate">{profileData?.email}</span>
             </p>
             <div className="flex items-center justify-center sm:justify-start gap-4 text-xs text-slate-400 font-medium">
               <span className="flex items-center gap-1.5">
@@ -303,60 +336,60 @@ const Profile = () => {
       </div>
 
       {/* Account Statistics Quick Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-card p-5 border border-white/[0.06]">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-400/20">
-              <DollarSign size={16} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="glass-card p-4 sm:p-5 border border-white/[0.06]">
+          <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-400/20">
+              <DollarSign size={15} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Logged</span>
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Logged</span>
           </div>
-          <p className="text-xl lg:text-2xl font-black text-white">
+          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">
             ${profileData?.totalSpent ? profileData.totalSpent.toFixed(2) : '0.00'}
           </p>
         </div>
 
-        <div className="glass-card p-5 border border-white/[0.06]">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-400/20">
-              <Receipt size={16} />
+        <div className="glass-card p-4 sm:p-5 border border-white/[0.06]">
+          <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-400/20">
+              <Receipt size={15} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Expenses</span>
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Expenses</span>
           </div>
-          <p className="text-xl lg:text-2xl font-black text-white">
+          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">
             {profileData?._count?.expenses || 0}
           </p>
         </div>
 
-        <div className="glass-card p-5 border border-white/[0.06]">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 rounded-xl bg-teal-500/15 text-teal-300 border border-teal-400/20">
-              <Users size={16} />
+        <div className="glass-card p-4 sm:p-5 border border-white/[0.06]">
+          <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-teal-500/15 text-teal-300 border border-teal-400/20">
+              <Users size={15} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Splits Created</span>
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Splits Created</span>
           </div>
-          <p className="text-xl lg:text-2xl font-black text-white">
+          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">
             {profileData?._count?.sharedExpenses || 0}
           </p>
         </div>
 
-        <div className="glass-card p-5 border border-white/[0.06]">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-400/20">
-              <Award size={16} />
+        <div className="glass-card p-4 sm:p-5 border border-white/[0.06]">
+          <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-400/20">
+              <Award size={15} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Participations</span>
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Participations</span>
           </div>
-          <p className="text-xl lg:text-2xl font-black text-white">
+          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">
             {profileData?._count?.participations || 0}
           </p>
         </div>
       </div>
 
       {/* Profile & Security Forms */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-7">
         {/* Edit Personal Information Card */}
-        <div className="glass-card p-6 lg:p-7 flex flex-col justify-between">
+        <div className="glass-card p-4 sm:p-6 lg:p-7 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2.5 mb-2">
               <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-400/20">
@@ -458,7 +491,7 @@ const Profile = () => {
                   ) : (
                     <>
                       {isEmailModified ? <MailCheck size={15} /> : <Save size={15} />}
-                      <span>{isEmailModified ? 'Verify & Update Email' : 'Save Name Changes'}</span>
+                      <span>{isEmailModified ? 'Verify & Update Email' : 'Save Changes'}</span>
                     </>
                   )}
                 </button>
@@ -540,11 +573,14 @@ const Profile = () => {
                   <input
                     type={showNewPassword ? 'text' : 'password'}
                     required
-                    minLength={6}
                     value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      if (!showNewPasswordRules) setShowNewPasswordRules(true);
+                    }}
+                    onFocus={() => setShowNewPasswordRules(true)}
                     className="w-full glass-inset pl-4 pr-11 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                    placeholder="Minimum 6 characters"
+                    placeholder="••••••••••"
                   />
                   <button
                     type="button"
@@ -556,6 +592,12 @@ const Profile = () => {
                     {showNewPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                   </button>
                 </div>
+
+                {/* Interactive Password Requirements Checklist (Hidden unless clicked / focused) */}
+                <PasswordRequirements 
+                  password={newPassword} 
+                  isVisible={showNewPasswordRules} 
+                />
               </div>
 
               <div>
@@ -630,16 +672,10 @@ const Profile = () => {
             </div>
 
             <p className="text-xs text-slate-300 mb-4">
-              We've sent a 6-digit authentication code to verify your new email address: <br />
-              <strong className="text-emerald-300">{email}</strong>
+              To protect your account, we've sent a 6-digit authentication code to your registered email: <br />
+              <strong className="text-emerald-300">{profileData?.email}</strong> <br />
+              <span className="text-[11px] text-slate-400 mt-1 block">New email will be set to: <strong className="text-slate-200">{email}</strong></span>
             </p>
-
-            {emailDevCode && (
-              <div className="p-3 rounded-xl bg-teal-950/40 border border-teal-400/30 text-center mb-4">
-                <p className="text-[11px] font-bold text-teal-300 uppercase tracking-wider">Dev Code</p>
-                <p className="text-xl font-black text-white tracking-widest mt-0.5">{emailDevCode}</p>
-              </div>
-            )}
 
             {emailOtpError && (
               <div className="bg-rose-950/40 border border-rose-500/30 text-rose-200 rounded-xl p-3 mb-4 text-xs font-semibold">
@@ -717,13 +753,6 @@ const Profile = () => {
               To protect your account, enter the 6-digit authentication code sent to your registered email: <br />
               <strong className="text-emerald-300">{profileData?.email}</strong>
             </p>
-
-            {passwordDevCode && (
-              <div className="p-3 rounded-xl bg-teal-950/40 border border-teal-400/30 text-center mb-4">
-                <p className="text-[11px] font-bold text-teal-300 uppercase tracking-wider">Dev Code</p>
-                <p className="text-xl font-black text-white tracking-widest mt-0.5">{passwordDevCode}</p>
-              </div>
-            )}
 
             {passwordOtpError && (
               <div className="bg-rose-950/40 border border-rose-500/30 text-rose-200 rounded-xl p-3 mb-4 text-xs font-semibold">

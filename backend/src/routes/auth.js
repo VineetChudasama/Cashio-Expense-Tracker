@@ -9,10 +9,11 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 import { sendEmailOTP, verifyEmailOTP } from '../utils/otp.js';
+import { validatePasswordStrength } from '../utils/passwordValidator.js';
 
 router.post('/register', [
   body('email').isEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('password').notEmpty().withMessage('Password is required'),
   body('name').notEmpty().withMessage('Name is required')
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -20,6 +21,12 @@ router.post('/register', [
 
   try {
     const { email, password, name } = req.body;
+
+    const strengthCheck = validatePasswordStrength(password);
+    if (!strengthCheck.isValid) {
+      return res.status(400).json({ success: false, error: strengthCheck.error });
+    }
+
     const normalizedEmail = email.toLowerCase().trim();
     const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     
@@ -41,14 +48,13 @@ router.post('/register', [
       });
     }
 
-    const otp = await sendEmailOTP(normalizedEmail, 'REGISTER');
+    await sendEmailOTP(normalizedEmail, 'REGISTER', { password, name });
 
     res.json({
       success: true,
       requireVerification: true,
       email: normalizedEmail,
-      message: `A 6-digit verification code has been sent to ${normalizedEmail}`,
-      devCode: otp.code
+      message: `A 6-digit verification code has been sent to ${normalizedEmail}`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -106,12 +112,11 @@ router.post('/resend-register-otp', [
       return res.status(400).json({ success: false, error: 'Account is already verified' });
     }
 
-    const otp = await sendEmailOTP(normalizedEmail, 'REGISTER');
+    await sendEmailOTP(normalizedEmail, 'REGISTER');
 
     res.json({
       success: true,
-      message: `A new 6-digit code has been sent to ${normalizedEmail}`,
-      devCode: otp.code
+      message: `A new 6-digit code has been sent to ${normalizedEmail}`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -141,13 +146,12 @@ router.post('/login', [
     }
 
     if (!user.isVerified) {
-      const otp = await sendEmailOTP(user.email, 'REGISTER');
+      await sendEmailOTP(user.email, 'REGISTER');
       return res.status(403).json({
         success: false,
         unverified: true,
         email: user.email,
-        error: 'Your email address is not verified. A verification code has been sent to your email.',
-        devCode: otp.code
+        error: 'Your email address is not verified. A verification code has been sent to your email.'
       });
     }
 

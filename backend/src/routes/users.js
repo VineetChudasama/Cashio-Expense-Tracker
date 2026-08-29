@@ -4,6 +4,7 @@ import { body, validationResult } from 'express-validator';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.js';
 import { sendEmailOTP, verifyEmailOTP } from '../utils/otp.js';
+import { validatePasswordStrength } from '../utils/passwordValidator.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -18,6 +19,7 @@ router.get('/profile', async (req, res) => {
         id: true,
         name: true,
         email: true,
+        currency: true,
         isVerified: true,
         createdAt: true,
         _count: {
@@ -50,20 +52,22 @@ router.get('/profile', async (req, res) => {
   }
 });
 
-// Update basic profile details (Name)
+// Update basic profile details (Name and Currency)
 router.put('/profile', [
-  body('name').optional().notEmpty().withMessage('Name cannot be empty')
+  body('name').optional().notEmpty().withMessage('Name cannot be empty'),
+  body('currency').optional()
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ success: false, error: errors.array() });
 
   try {
-    const { name } = req.body;
+    const { name, currency } = req.body;
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
     const updateData = {};
     if (name) updateData.name = name;
+    if (currency) updateData.currency = currency;
 
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
@@ -72,6 +76,7 @@ router.put('/profile', [
         id: true,
         name: true,
         email: true,
+        currency: true,
         isVerified: true,
         createdAt: true
       }
@@ -100,12 +105,11 @@ router.post('/send-password-otp', [
       return res.status(400).json({ success: false, error: 'Current password is incorrect' });
     }
 
-    const otp = await sendEmailOTP(user.email, 'CHANGE_PASSWORD');
+    await sendEmailOTP(user.email, 'CHANGE_PASSWORD');
 
     res.json({
       success: true,
-      message: `Verification code sent to your registered email (${user.email})`,
-      devCode: otp.code
+      message: `Verification code sent to your registered email (${user.email})`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -115,7 +119,7 @@ router.post('/send-password-otp', [
 // Verify OTP and update password
 router.put('/change-password-with-otp', [
   body('currentPassword').notEmpty().withMessage('Current password is required'),
-  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+  body('newPassword').notEmpty().withMessage('New password is required'),
   body('otpCode').notEmpty().withMessage('6-digit verification code is required')
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -123,6 +127,12 @@ router.put('/change-password-with-otp', [
 
   try {
     const { currentPassword, newPassword, otpCode } = req.body;
+
+    const strengthCheck = validatePasswordStrength(newPassword);
+    if (!strengthCheck.isValid) {
+      return res.status(400).json({ success: false, error: strengthCheck.error });
+    }
+
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
@@ -175,12 +185,11 @@ router.post('/send-email-otp', [
       return res.status(400).json({ success: false, error: 'This email is already registered to another account' });
     }
 
-    const otp = await sendEmailOTP(normalizedNewEmail, 'CHANGE_EMAIL');
+    await sendEmailOTP(user.email, 'CHANGE_EMAIL');
 
     res.json({
       success: true,
-      message: `Verification code sent to ${normalizedNewEmail}`,
-      devCode: otp.code
+      message: `Verification code sent to your registered email (${user.email})`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -202,8 +211,8 @@ router.put('/change-email-with-otp', [
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-    // Verify OTP
-    const verification = await verifyEmailOTP(normalizedNewEmail, otpCode, 'CHANGE_EMAIL');
+    // Verify OTP sent to current registered email
+    const verification = await verifyEmailOTP(user.email, otpCode, 'CHANGE_EMAIL');
     if (!verification.valid) {
       return res.status(400).json({ success: false, error: verification.error });
     }

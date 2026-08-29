@@ -150,8 +150,10 @@ router.get('/settle', async (req, res) => {
 
     const simplified = simplifyDebts(balancesMap);
     const transactions = simplified.map(t => ({
-      from: userLookup.get(t.from),
-      to: userLookup.get(t.to),
+      from: userLookup.get(t.from) || { id: t.from, name: 'User' },
+      to: userLookup.get(t.to) || { id: t.to, name: 'User' },
+      fromUserId: t.from,
+      toUserId: t.to,
       amount: t.amount
     }));
 
@@ -161,25 +163,81 @@ router.get('/settle', async (req, res) => {
   }
 });
 
-router.patch('/:participantId/settle', async (req, res) => {
+router.post('/settle-transaction', async (req, res) => {
   try {
+    const { fromUserId, toUserId } = req.body;
+    if (!fromUserId || !toUserId) {
+      return res.status(400).json({ success: false, error: 'fromUserId and toUserId are required' });
+    }
+
+    // Settle records where fromUserId is participant in toUserId's shared expense
+    await prisma.participant.updateMany({
+      where: {
+        userId: fromUserId,
+        settled: false,
+        sharedExpense: { createdByUserId: toUserId }
+      },
+      data: { settled: true }
+    });
+
+    // And also where toUserId is participant in fromUserId's shared expense
+    await prisma.participant.updateMany({
+      where: {
+        userId: toUserId,
+        settled: false,
+        sharedExpense: { createdByUserId: fromUserId }
+      },
+      data: { settled: true }
+    });
+
+    res.json({ success: true, message: 'Settlement completed successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.patch('/:targetId/settle', async (req, res) => {
+  try {
+    const { targetId } = req.params;
+
+    // 1. Try finding by participant ID
     const participant = await prisma.participant.findUnique({
-      where: { id: req.params.participantId },
+      where: { id: targetId },
       include: { sharedExpense: true }
     });
     
-    if (!participant) return res.status(404).json({ success: false, error: 'Participant record not found' });
-    
-    if (participant.sharedExpense.createdByUserId !== req.user.id && participant.userId !== req.user.id) {
-      return res.status(403).json({ success: false, error: 'Unauthorized to settle this record' });
+    if (participant) {
+      if (participant.sharedExpense.createdByUserId !== req.user.id && participant.userId !== req.user.id) {
+        return res.status(403).json({ success: false, error: 'Unauthorized to settle this record' });
+      }
+
+      const updated = await prisma.participant.update({
+        where: { id: targetId },
+        data: { settled: true }
+      });
+      return res.json({ success: true, data: updated });
     }
 
-    const updated = await prisma.participant.update({
-      where: { id: req.params.participantId },
+    // 2. If not found by participantId, treat targetId as peer userId
+    await prisma.participant.updateMany({
+      where: {
+        userId: targetId,
+        settled: false,
+        sharedExpense: { createdByUserId: req.user.id }
+      },
+      data: { settled: true }
+    });
+
+    await prisma.participant.updateMany({
+      where: {
+        userId: req.user.id,
+        settled: false,
+        sharedExpense: { createdByUserId: targetId }
+      },
       data: { settled: true }
     });
     
-    res.json({ success: true, data: updated });
+    res.json({ success: true, message: 'Peer settlement completed' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { expenses } from '../lib/api';
 import { format } from 'date-fns';
@@ -60,26 +60,26 @@ const ExpenseModal = ({ expense, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 glass-overlay overflow-y-auto">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="glass-card w-full max-w-md overflow-hidden border border-white/10"
+        className="glass-card w-full max-w-md overflow-hidden border border-white/10 my-auto"
       >
-        <div className="flex justify-between items-center p-6 border-b border-white/[0.06]">
-          <h2 className="text-xl font-bold text-white">
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-white/[0.06]">
+          <h2 className="text-lg sm:text-xl font-bold text-white">
             {expense ? 'Edit Expense' : 'Add Expense'}
           </h2>
           <button 
             onClick={() => onClose(false)}
             className="p-2 rounded-xl text-slate-400 hover:text-white glass-btn transition-colors"
           >
-            <X size={18} />
+            <X size={17} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           <div>
             <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">Amount ($)</label>
             <input
@@ -92,6 +92,7 @@ const ExpenseModal = ({ expense, onClose }) => {
               onChange={handleChange}
               className="w-full glass-inset px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
               placeholder="0.00"
+              autoFocus
             />
           </div>
 
@@ -104,18 +105,18 @@ const ExpenseModal = ({ expense, onClose }) => {
               value={formData.description}
               onChange={handleChange}
               className="w-full glass-inset px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
-              placeholder="e.g. Groceries"
+              placeholder="e.g. Groceries, Rent, Coffee"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">Category</label>
               <select
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full glass-inset px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 appearance-none cursor-pointer"
+                className="w-full glass-inset px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 appearance-none cursor-pointer"
               >
                 {categories.map(c => <option key={c} value={c} className="bg-[#031512]">{c}</option>)}
               </select>
@@ -129,12 +130,12 @@ const ExpenseModal = ({ expense, onClose }) => {
                 required
                 value={formData.date}
                 onChange={handleChange}
-                className="w-full glass-inset px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                className="w-full glass-inset px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-3 mt-4 p-3.5 rounded-2xl glass-elevated border border-white/[0.06]">
+          <div className="flex items-center gap-3 mt-4 p-3 sm:p-3.5 rounded-2xl glass-elevated border border-white/[0.06]">
             <input
               type="checkbox"
               id="isRecurring"
@@ -154,7 +155,7 @@ const ExpenseModal = ({ expense, onClose }) => {
               animate={{ height: 'auto', opacity: 1 }}
               className="overflow-hidden"
             >
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">Interval</label>
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">Cadence Interval</label>
               <select
                 name="recurringInterval"
                 value={formData.recurringInterval}
@@ -167,23 +168,23 @@ const ExpenseModal = ({ expense, onClose }) => {
             </motion.div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/[0.06] mt-6">
+          <div className="flex gap-2.5 sm:gap-3 pt-3 border-t border-white/[0.06] mt-4 sm:mt-6">
             <button
               type="button"
               onClick={() => onClose(false)}
-              className="px-5 py-2.5 rounded-xl text-slate-300 text-xs font-bold hover:text-white glass-btn"
+              className="flex-1 py-3 rounded-xl text-slate-300 text-xs font-bold hover:text-white glass-btn"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="glass-btn-primary px-6 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center min-w-[100px] shadow-lg shadow-emerald-500/25"
+              className="flex-1 glass-btn-primary py-3 rounded-xl font-bold text-xs flex items-center justify-center shadow-lg shadow-emerald-500/25 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                'Save'
+                'Save Expense'
               )}
             </button>
           </div>

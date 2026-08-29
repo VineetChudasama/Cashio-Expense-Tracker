@@ -53,6 +53,7 @@ export const splits = {
   getBalances: () => api.get('/splits/balances').then(res => res.data),
   getSettle: () => api.get('/splits/settle').then(res => res.data),
   settleParticipant: (id) => api.patch(`/splits/${id}/settle`).then(res => res.data),
+  settleTransaction: (data) => api.post('/splits/settle-transaction', data).then(res => res.data),
 };
 
 export const users = {
