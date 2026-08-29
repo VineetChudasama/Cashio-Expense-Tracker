@@ -1,20 +1,17 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TrendingUp, 
   Users, 
   ShieldCheck, 
-  PieChart, 
   Sparkles, 
   ArrowRight, 
   Lock, 
   CheckCircle2, 
   DollarSign, 
-  Calendar, 
   Receipt, 
   Layers, 
-  SlidersHorizontal,
   MailCheck,
   Globe
 } from 'lucide-react';
@@ -22,22 +19,45 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
 
+const superpowers = [
+  { text: "Clarity & Confidence", gradientDark: "from-emerald-400 via-teal-300 to-cyan-300", gradientLight: "from-[#147D70] via-[#3BAE9F] to-[#147D70]" },
+  { text: "Predictive Intelligence", gradientDark: "from-teal-300 via-cyan-300 to-emerald-400", gradientLight: "from-[#147D70] via-[#3BAE9F] to-[#0D5950]" },
+  { text: "Simplified Peer Splits", gradientDark: "from-cyan-300 via-emerald-400 to-teal-300", gradientLight: "from-[#3BAE9F] via-[#147D70] to-[#3BAE9F]" },
+  { text: "Bank-Grade Protection", gradientDark: "from-emerald-300 via-teal-400 to-cyan-400", gradientLight: "from-[#147D70] via-[#3BAE9F] to-[#147D70]" }
+];
+
 const Landing = () => {
   const { user } = useAuth();
   const { isDark, logoUrl } = useTheme();
-  const navigate = useNavigate();
+  const [powerIndex, setPowerIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPowerIndex((prev) => (prev + 1) % superpowers.length);
+    }, 3200);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    if (!window.location.hash) {
+      window.scrollTo(0, 0);
+    }
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 }
+      transition: { staggerChildren: 0.08 }
     }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }
+    hidden: { opacity: 0, y: 18 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } }
   };
 
   const realFeatures = [
@@ -92,34 +112,58 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] relative overflow-x-hidden selection:bg-[#10B981]/30 selection:text-[#34D399]">
+    <div className={`min-h-screen relative overflow-x-hidden selection:bg-[#10B981]/30 selection:text-[#34D399] transition-colors duration-300 ${
+      isDark ? 'bg-[#030F0D] text-[#F8FAFC]' : 'bg-[#F4FAF8] text-[#07241E]'
+    }`}>
       {/* Ambient Glassmorphic Background Orbs */}
-      <div className="fixed top-[-15%] left-[10%] w-[50vw] h-[50vw] rounded-full bg-emerald-500/10 blur-[140px] pointer-events-none -z-10 animate-pulse duration-1000"></div>
-      <div className="fixed bottom-[-15%] right-[5%] w-[45vw] h-[45vw] rounded-full bg-teal-600/10 blur-[150px] pointer-events-none -z-10"></div>
-      <div className="fixed top-[45%] right-[20%] w-[35vw] h-[35vw] rounded-full bg-cyan-500/5 blur-[130px] pointer-events-none -z-10"></div>
+      <div className={`fixed top-[-15%] left-[10%] w-[50vw] h-[50vw] rounded-full blur-[140px] pointer-events-none -z-10 animate-pulse duration-1000 ${
+        isDark ? 'bg-emerald-500/10' : 'bg-[#3BAE9F]/15'
+      }`}></div>
+      <div className={`fixed bottom-[-15%] right-[5%] w-[45vw] h-[45vw] rounded-full blur-[150px] pointer-events-none -z-10 ${
+        isDark ? 'bg-teal-600/10' : 'bg-[#147D70]/10'
+      }`}></div>
+      <div className={`fixed top-[45%] right-[20%] w-[35vw] h-[35vw] rounded-full blur-[130px] pointer-events-none -z-10 ${
+        isDark ? 'bg-cyan-500/5' : 'bg-[#3BAE9F]/10'
+      }`}></div>
 
       {/* Navigation Header */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-2xl border-b border-white/[0.08] bg-[var(--bg-primary)]/80 transition-colors duration-300">
+      <header className={`sticky top-0 z-40 w-full backdrop-blur-2xl border-b transition-colors duration-300 ${
+        isDark 
+          ? 'bg-[#030F0D]/85 border-white/[0.08]' 
+          : 'bg-[#F4FAF8]/90 border-[#CDE9E3] shadow-xs'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Logo & Brand */}
           <Link to="/" className="flex items-center gap-3 group">
             <img 
               src={logoUrl} 
               alt="Cashio Logo" 
-              className="w-10 h-10 object-contain drop-shadow-[0_0_12px_rgba(16,185,129,0.4)] group-hover:scale-105 transition-transform" 
+              className="w-10 h-10 object-contain drop-shadow-[0_0_12px_rgba(16,185,129,0.35)] group-hover:scale-105 transition-transform" 
             />
             <div>
-              <span className="text-2xl font-black tracking-wider text-[var(--text-primary)]">Cashio</span>
-              <span className="block text-[9px] uppercase font-extrabold tracking-[0.22em] text-emerald-600 dark:text-emerald-400/90">FINANCE PRO</span>
+              <span className="text-2xl font-black tracking-wider">
+                Cash<span className={isDark ? "text-emerald-400" : "text-[#10B981]"}>io</span>
+              </span>
+              <span className={`block text-[9px] uppercase font-extrabold tracking-[0.22em] ${
+                isDark ? 'text-slate-400' : 'text-[#5A7A73]'
+              }`}>FINANCE PRO</span>
             </div>
           </Link>
 
           {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8 text-xs font-bold text-[var(--text-muted)]">
-            <a href="#features" className="hover:text-[var(--text-primary)] transition-colors">Features</a>
-            <a href="#forecast" className="hover:text-[var(--text-primary)] transition-colors">Forecast & AI</a>
-            <a href="#splits" className="hover:text-[var(--text-primary)] transition-colors">Splits & Settle</a>
-            <a href="#security" className="hover:text-[var(--text-primary)] transition-colors">Security</a>
+          <nav className="hidden md:flex items-center gap-8 text-xs font-bold">
+            <a href="#features" className={`transition-colors ${
+              isDark ? 'text-slate-300 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+            }`}>Features</a>
+            <a href="#forecast" className={`transition-colors ${
+              isDark ? 'text-slate-300 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+            }`}>Forecast & AI</a>
+            <a href="#splits" className={`transition-colors ${
+              isDark ? 'text-slate-300 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+            }`}>Splits & Settle</a>
+            <a href="#security" className={`transition-colors ${
+              isDark ? 'text-slate-300 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+            }`}>Security</a>
           </nav>
 
           {/* Right Action Controls */}
@@ -129,7 +173,7 @@ const Landing = () => {
             {user ? (
               <Link
                 to="/dashboard"
-                className="glass-btn-primary px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/25"
+                className="glass-btn-primary px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg"
               >
                 <span>Dashboard</span>
                 <ArrowRight size={14} />
@@ -138,13 +182,17 @@ const Landing = () => {
               <div className="flex items-center gap-2">
                 <Link
                   to="/login"
-                  className="px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold text-[var(--text-primary)] hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors"
+                  className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+                    isDark 
+                      ? 'text-slate-200 hover:text-white hover:bg-white/5' 
+                      : 'text-[#07241E] hover:bg-[#E8F4F1] hover:text-[#147D70]'
+                  }`}
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/register"
-                  className="glass-btn-primary px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/25"
+                  className="glass-btn-primary px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg"
                 >
                   <span>Get Started</span>
                   <ArrowRight size={14} />
@@ -156,7 +204,7 @@ const Landing = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-16 pb-20 sm:pt-24 sm:pb-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="min-h-[calc(100vh-5rem)] flex flex-col justify-center relative py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -164,27 +212,62 @@ const Landing = () => {
           className="max-w-4xl mx-auto space-y-6"
         >
           {/* Top Pill Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 text-xs font-extrabold tracking-wide shadow-sm">
-            <Sparkles size={14} className="animate-pulse" />
+          <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-extrabold tracking-wide shadow-sm ${
+            isDark 
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' 
+              : 'border-[#CDE9E3] bg-[#E8F4F1] text-[#147D70]'
+          }`}>
+            <Sparkles size={14} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
             <span>Intelligent Expense Tracking, Predictive Forecasting & Bill Splits</span>
           </div>
 
-          {/* Main Headline */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[var(--text-primary)] leading-[1.08]">
-            Master Your Money with <span className="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 bg-clip-text text-transparent">Clarity & Confidence</span>
-          </h1>
+          {/* Kinetic Morphing Headline */}
+          <div className="space-y-1 sm:space-y-2">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08]"
+            >
+              Master Your Money with
+            </motion.h1>
+
+            <div className="min-h-[1.7em] sm:min-h-[1.6em] flex items-center justify-center overflow-hidden relative px-2 py-1">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={powerIndex}
+                  initial={{ y: 55, opacity: 0, filter: 'blur(12px)', rotateX: -30 }}
+                  animate={{ y: 0, opacity: 1, filter: 'blur(0px)', rotateX: 0 }}
+                  exit={{ y: -55, opacity: 0, filter: 'blur(12px)', rotateX: 30 }}
+                  transition={{ 
+                    duration: 0.55, 
+                    ease: [0.22, 1, 0.36, 1] 
+                  }}
+                  className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.15] flex items-center justify-center py-1"
+                >
+                  <span className={`bg-clip-text text-transparent bg-gradient-to-r animate-text-shimmer ${
+                    isDark ? superpowers[powerIndex].gradientDark : superpowers[powerIndex].gradientLight
+                  }`}>
+                    {superpowers[powerIndex].text}
+                  </span>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
 
           {/* Subheading */}
-          <p className="text-sm sm:text-base lg:text-lg text-[var(--text-muted)] max-w-2xl mx-auto font-medium leading-relaxed">
+          <p className={`text-sm sm:text-base lg:text-lg max-w-2xl mx-auto font-medium leading-relaxed ${
+            isDark ? 'text-slate-300' : 'text-[#133E35]'
+          }`}>
             Cashio combines precise category tracking, automated 30-day cash flow predictions, debt-simplified peer splits, and bank-grade dual-layer OTP security in one luxury workspace.
           </p>
 
           {/* Hero Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-2">
             {user ? (
               <Link
                 to="/dashboard"
-                className="w-full sm:w-auto glass-btn-primary px-8 py-4 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-500/30"
+                className="w-full sm:w-auto glass-btn-primary px-8 py-4 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl"
               >
                 <span>Enter Your Dashboard</span>
                 <ArrowRight size={18} />
@@ -193,14 +276,18 @@ const Landing = () => {
               <>
                 <Link
                   to="/register"
-                  className="w-full sm:w-auto glass-btn-primary px-8 py-4 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-500/30 hover:scale-[1.02] transition-transform"
+                  className="w-full sm:w-auto glass-btn-primary px-8 py-4 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl hover:scale-[1.02] transition-transform"
                 >
                   <span>Create Free Account</span>
                   <ArrowRight size={18} />
                 </Link>
                 <Link
                   to="/login"
-                  className="w-full sm:w-auto glass-elevated px-7 py-4 rounded-2xl font-bold text-sm sm:text-base border border-white/10 hover:border-emerald-400/40 text-[var(--text-primary)] flex items-center justify-center gap-2 transition-all"
+                  className={`w-full sm:w-auto px-7 py-4 rounded-2xl font-bold text-sm sm:text-base border flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.05] active:scale-[0.98] cursor-pointer ${
+                    isDark 
+                      ? 'glass-elevated border-white/10 hover:border-emerald-400 hover:bg-emerald-500/15 hover:shadow-[0_0_24px_rgba(16,185,129,0.4)] text-white' 
+                      : 'bg-[#E8F4F1] border-[#CDE9E3] text-[#07241E] hover:bg-white hover:border-[#147D70] hover:text-[#147D70] hover:shadow-[0_0_24px_rgba(20,125,112,0.3)] shadow-sm'
+                  }`}
                 >
                   <span>Sign In</span>
                 </Link>
@@ -208,64 +295,24 @@ const Landing = () => {
             )}
           </div>
         </motion.div>
-
-        {/* Live Interactive Hero UI Preview Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-14 max-w-5xl mx-auto glass-card p-4 sm:p-7 border border-white/15 rounded-3xl shadow-2xl relative"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-            {/* Live Metrics Column 1 */}
-            <div className="glass-elevated p-4 rounded-2xl border border-white/[0.06] space-y-2">
-              <div className="flex justify-between items-center text-xs font-bold text-[var(--text-muted)]">
-                <span>Monthly Expenditure</span>
-                <DollarSign size={16} className="text-emerald-400" />
-              </div>
-              <p className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">$2,450.80</p>
-              <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-300 flex items-center gap-1">
-                <span>✓ 5 Active Categories Analyzed</span>
-              </div>
-            </div>
-
-            {/* Live Metrics Column 2 */}
-            <div className="glass-elevated p-4 rounded-2xl border border-white/[0.06] space-y-2">
-              <div className="flex justify-between items-center text-xs font-bold text-[var(--text-muted)]">
-                <span>30-Day Forecast Run</span>
-                <TrendingUp size={16} className="text-teal-400" />
-              </div>
-              <p className="text-2xl sm:text-3xl font-black text-teal-600 dark:text-teal-300">$1,890.00</p>
-              <div className="text-[11px] font-bold text-[var(--text-muted)]">
-                Pattern Recognition: 94% Confidence
-              </div>
-            </div>
-
-            {/* Live Metrics Column 3 */}
-            <div className="glass-elevated p-4 rounded-2xl border border-white/[0.06] space-y-2">
-              <div className="flex justify-between items-center text-xs font-bold text-[var(--text-muted)]">
-                <span>Simplified Peer Splits</span>
-                <Users size={16} className="text-cyan-400" />
-              </div>
-              <p className="text-2xl sm:text-3xl font-black text-cyan-600 dark:text-cyan-300">3 Net Debts</p>
-              <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-300">
-                Debt Simplification Active
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </section>
 
       {/* Real Feature Grid Section */}
-      <section id="features" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-white/[0.06]">
-        <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
-          <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
+      <section id="features" className={`min-h-[calc(100vh-5rem)] flex flex-col justify-center py-16 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t scroll-mt-20 ${
+        isDark ? 'border-white/[0.06]' : 'border-[#CDE9E3]'
+      }`}>
+        <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
+          <span className={`text-xs font-extrabold uppercase tracking-[0.2em] ${
+            isDark ? 'text-emerald-400' : 'text-[#147D70]'
+          }`}>
             What You Can Do
           </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight">
             Every Feature Built for Real Financial Clarity
           </h2>
-          <p className="text-xs sm:text-sm text-[var(--text-muted)] font-medium">
+          <p className={`text-xs sm:text-sm font-medium ${
+            isDark ? 'text-slate-300' : 'text-[#133E35]'
+          }`}>
             Everything you see here is implemented directly inside your Cashio workspace.
           </p>
         </div>
@@ -274,7 +321,7 @@ const Landing = () => {
           variants={containerVariants}
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-80px" }}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"
         >
           {realFeatures.map((feat, idx) => {
@@ -283,23 +330,41 @@ const Landing = () => {
               <motion.div
                 variants={itemVariants}
                 key={idx}
-                className="glass-card p-5 sm:p-6 rounded-2xl border border-white/[0.08] hover:border-emerald-400/40 transition-all duration-300 group flex flex-col justify-between"
+                className={`glass-card p-5 sm:p-6 rounded-2xl border transition-all duration-300 group flex flex-col justify-between ${
+                  isDark 
+                    ? 'border-white/[0.08] hover:border-emerald-400/40' 
+                    : 'border-[#CDE9E3] hover:border-[#3BAE9F] bg-[#FFFFFF] shadow-sm'
+                }`}
               >
                 <div className="space-y-3.5">
                   <div className="flex justify-between items-start">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-400/30 flex items-center justify-center text-emerald-600 dark:text-emerald-300 group-hover:scale-110 transition-transform">
+                    <div className={`w-11 h-11 rounded-xl border flex items-center justify-center group-hover:scale-110 transition-transform ${
+                      isDark 
+                        ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border-emerald-400/30 text-emerald-300' 
+                        : 'bg-[#E8F4F1] border-[#CDE9E3] text-[#147D70] shadow-xs'
+                    }`}>
                       <Icon size={20} />
                     </div>
-                    <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 text-[var(--text-muted)] border border-white/5">
+                    <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
+                      isDark 
+                        ? 'bg-white/5 text-slate-300 border-white/5' 
+                        : 'bg-[#E8F4F1] text-[#147D70] border-[#CDE9E3] font-bold'
+                    }`}>
                       {feat.badge}
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-base text-[var(--text-primary)] group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">
+                  <h3 className={`font-bold text-base transition-colors ${
+                    isDark 
+                      ? 'text-white group-hover:text-emerald-300' 
+                      : 'text-[#07241E] group-hover:text-[#147D70]'
+                  }`}>
                     {feat.title}
                   </h3>
 
-                  <p className="text-xs text-[var(--text-muted)] leading-relaxed font-medium">
+                  <p className={`text-xs leading-relaxed font-medium ${
+                    isDark ? 'text-slate-300' : 'text-[#133E35]'
+                  }`}>
                     {feat.description}
                   </p>
                 </div>
@@ -310,56 +375,76 @@ const Landing = () => {
       </section>
 
       {/* Feature Deep Dive: Forecast & AI */}
-      <section id="forecast" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-white/[0.06]">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+      <section id="forecast" className={`min-h-[calc(100vh-5rem)] flex flex-col justify-center py-16 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t scroll-mt-20 ${
+        isDark ? 'border-white/[0.06]' : 'border-[#CDE9E3]'
+      }`}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
           <div className="space-y-5 text-left">
-            <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-teal-600 dark:text-teal-400">
+            <span className={`text-xs font-extrabold uppercase tracking-[0.2em] ${
+              isDark ? 'text-teal-400' : 'text-[#147D70]'
+            }`}>
               Forward-Looking Predictions
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
               30-Day Cash Flow Forecasting & Anomaly Alerts
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--text-muted)] font-medium leading-relaxed">
+            <p className={`text-xs sm:text-sm lg:text-base font-medium leading-relaxed ${
+              isDark ? 'text-slate-300' : 'text-[#133E35]'
+            }`}>
               Never be surprised by upcoming bills or subscription renewals. Cashio automatically scans transaction history to detect recurring cycles, project balance trajectories, and flag abnormal spending velocities before they become problems.
             </p>
-            <ul className="space-y-2.5 text-xs font-semibold text-[var(--text-primary)]">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-500" />
+            <ul className="space-y-3 text-xs sm:text-sm font-semibold">
+              <li className="flex items-center gap-2.5">
+                <CheckCircle2 size={18} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
                 <span>Automated pattern detection for rent, utilities, and subscriptions</span>
               </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-500" />
+              <li className="flex items-center gap-2.5">
+                <CheckCircle2 size={18} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
                 <span>30-day forward projection with high and low variance bands</span>
               </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-500" />
+              <li className="flex items-center gap-2.5">
+                <CheckCircle2 size={18} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
                 <span>Actionable category savings intelligence</span>
               </li>
             </ul>
           </div>
 
           {/* Interactive Visual Card */}
-          <div className="glass-card p-6 rounded-3xl border border-white/10 space-y-4">
-            <div className="flex justify-between items-center border-b border-white/[0.06] pb-3">
-              <div className="flex items-center gap-2">
-                <TrendingUp size={18} className="text-emerald-400" />
-                <span className="font-bold text-sm text-[var(--text-primary)]">Forecast Trajectory</span>
+          <div className={`glass-card p-6 sm:p-8 rounded-3xl border space-y-5 ${
+            isDark ? 'border-white/10' : 'border-[#CDE9E3] bg-[#FFFFFF] shadow-lg shadow-[#147D70]/10'
+          }`}>
+            <div className={`flex justify-between items-center border-b pb-4 ${
+              isDark ? 'border-white/[0.06]' : 'border-[#CDE9E3]'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <TrendingUp size={20} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
+                <span className="font-bold text-base">Forecast Trajectory</span>
               </div>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
+              <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                isDark 
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' 
+                  : 'bg-[#E8F4F1] text-[#147D70] border-[#CDE9E3]'
+              }`}>
                 Next 30 Days
               </span>
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-medium text-[var(--text-muted)]">
-                <span>Predicted Total Outflow</span>
-                <span className="font-bold text-[var(--text-primary)]">$1,890.00</span>
+            <div className="space-y-2.5">
+              <div className="flex justify-between text-xs sm:text-sm font-medium">
+                <span className={isDark ? 'text-slate-300' : 'text-[#133E35]'}>Predicted Total Outflow</span>
+                <span className="font-black text-lg">$1,890.00</span>
               </div>
-              <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden">
-                <div className="w-3/4 h-full bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full"></div>
+              <div className={`w-full h-3 rounded-full overflow-hidden ${
+                isDark ? 'bg-white/10' : 'bg-[#E8F4F1]'
+              }`}>
+                <div className="w-3/4 h-full bg-gradient-to-r from-[#147D70] to-[#3BAE9F] rounded-full"></div>
               </div>
             </div>
-            <div className="p-3 rounded-xl bg-emerald-950/25 border border-emerald-500/20 text-xs text-emerald-300 font-medium flex items-center gap-2">
-              <Sparkles size={15} className="shrink-0" />
+            <div className={`p-4 rounded-2xl border text-xs sm:text-sm font-medium flex items-center gap-3 ${
+              isDark 
+                ? 'bg-emerald-950/40 border-emerald-500/25 text-emerald-300' 
+                : 'bg-[#E8F4F1] border-[#CDE9E3] text-[#147D70]'
+            }`}>
+              <Sparkles size={18} className="shrink-0" />
               <span>Recurring utility bill ($120.00) anticipated on the 5th of next month.</span>
             </div>
           </div>
@@ -367,55 +452,79 @@ const Landing = () => {
       </section>
 
       {/* Feature Deep Dive: Splits & Debt Simplification */}
-      <section id="splits" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-white/[0.06]">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div className="order-2 lg:order-1 glass-card p-6 rounded-3xl border border-white/10 space-y-4">
-            <div className="flex justify-between items-center border-b border-white/[0.06] pb-3">
-              <div className="flex items-center gap-2">
-                <Users size={18} className="text-emerald-400" />
-                <span className="font-bold text-sm text-[var(--text-primary)]">Simplified Settle Ledger</span>
+      <section id="splits" className={`min-h-[calc(100vh-5rem)] flex flex-col justify-center py-16 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t scroll-mt-20 ${
+        isDark ? 'border-white/[0.06]' : 'border-[#CDE9E3]'
+      }`}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+          <div className={`order-2 lg:order-1 glass-card p-6 sm:p-8 rounded-3xl border space-y-4 ${
+            isDark ? 'border-white/10' : 'border-[#CDE9E3] bg-[#FFFFFF] shadow-lg shadow-[#147D70]/10'
+          }`}>
+            <div className={`flex justify-between items-center border-b pb-4 ${
+              isDark ? 'border-white/[0.06]' : 'border-[#CDE9E3]'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <Users size={20} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
+                <span className="font-bold text-base">Simplified Settle Ledger</span>
               </div>
-              <span className="text-[10px] bg-cyan-500/20 text-cyan-300 font-bold px-2 py-0.5 rounded-full">
+              <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                isDark 
+                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/30' 
+                  : 'bg-[#E8F4F1] text-[#147D70] border-[#CDE9E3]'
+              }`}>
                 Optimized
               </span>
             </div>
-            <div className="glass-elevated p-3 rounded-xl border flex items-center justify-between text-xs">
-              <span className="font-bold text-[var(--text-primary)]">Alex Pays You</span>
-              <span className="font-black text-emerald-500 dark:text-emerald-400">$45.00</span>
-              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 font-bold text-[10px]">
+            <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs sm:text-sm ${
+              isDark ? 'glass-elevated' : 'bg-[#E8F4F1] border-[#CDE9E3]'
+            }`}>
+              <span className="font-bold">Alex Pays You</span>
+              <span className={`font-black ${isDark ? 'text-emerald-400' : 'text-[#147D70]'}`}>$45.00</span>
+              <span className={`px-2.5 py-1 rounded-lg font-bold text-xs border ${
+                isDark 
+                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-400/30' 
+                  : 'bg-[#FFFFFF] text-[#147D70] border-[#CDE9E3]'
+              }`}>
                 Pending
               </span>
             </div>
-            <div className="glass-elevated p-3 rounded-xl border flex items-center justify-between text-xs">
-              <span className="font-bold text-[var(--text-primary)]">You Pay Sarah</span>
-              <span className="font-black text-rose-500 dark:text-rose-400">$22.50</span>
-              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">
+            <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs sm:text-sm ${
+              isDark ? 'glass-elevated' : 'bg-[#E8F4F1] border-[#CDE9E3]'
+            }`}>
+              <span className="font-bold">You Pay Sarah</span>
+              <span className={`font-black ${isDark ? 'text-rose-400' : 'text-rose-700'}`}>$22.50</span>
+              <span className="px-3 py-1 rounded-lg bg-[#147D70] text-white font-bold text-xs shadow-xs">
                 Mark Settled
               </span>
             </div>
           </div>
 
           <div className="order-1 lg:order-2 space-y-5 text-left">
-            <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400">
+            <span className={`text-xs font-extrabold uppercase tracking-[0.2em] ${
+              isDark ? 'text-cyan-400' : 'text-[#147D70]'
+            }`}>
               Zero-Friction Peer Settlements
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
               Group Bill Splits with Automated Debt Simplification
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--text-muted)] font-medium leading-relaxed">
-              Stop calculating complex webs of group IOUs. Cashio runs a graph-based debt simplification algorithm (<code className="text-emerald-500 font-mono text-xs">simplifyDebts</code>) that automatically condenses multi-person balances into the smallest number of direct payments possible.
+            <p className={`text-xs sm:text-sm lg:text-base font-medium leading-relaxed ${
+              isDark ? 'text-slate-300' : 'text-[#133E35]'
+            }`}>
+              Stop calculating complex webs of group IOUs. Cashio runs a graph-based debt simplification algorithm (<code className={`font-mono text-xs sm:text-sm px-2 py-0.5 rounded border ${
+                isDark ? 'bg-black/40 text-emerald-300 border-white/10' : 'bg-[#E8F4F1] text-[#147D70] border-[#CDE9E3]'
+              }`}>simplifyDebts</code>) that automatically condenses multi-person balances into the smallest number of direct payments possible.
             </p>
-            <ul className="space-y-2.5 text-xs font-semibold text-[var(--text-primary)]">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-500" />
+            <ul className="space-y-3 text-xs sm:text-sm font-semibold">
+              <li className="flex items-center gap-2.5">
+                <CheckCircle2 size={18} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
                 <span>Equal and custom proportional bill sharing</span>
               </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-500" />
+              <li className="flex items-center gap-2.5">
+                <CheckCircle2 size={18} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
                 <span>Real-time credit and debit balances ledger</span>
               </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-500" />
+              <li className="flex items-center gap-2.5">
+                <CheckCircle2 size={18} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
                 <span>One-click transaction reconciliation</span>
               </li>
             </ul>
@@ -424,40 +533,58 @@ const Landing = () => {
       </section>
 
       {/* Feature Deep Dive: Security & OTP */}
-      <section id="security" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-white/[0.06]">
+      <section id="security" className={`min-h-[calc(100vh-5rem)] flex flex-col justify-center py-16 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t scroll-mt-20 ${
+        isDark ? 'border-white/[0.06]' : 'border-[#CDE9E3]'
+      }`}>
         <div className="max-w-3xl mx-auto text-center space-y-4 mb-12">
-          <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
+          <span className={`text-xs font-extrabold uppercase tracking-[0.2em] ${
+            isDark ? 'text-emerald-400' : 'text-[#147D70]'
+          }`}>
             Account Protection
           </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
             Dual-Layer Authentication & Breached Password Detection
           </h2>
-          <p className="text-xs sm:text-sm text-[var(--text-muted)] font-medium">
+          <p className={`text-xs sm:text-sm lg:text-base font-medium ${
+            isDark ? 'text-slate-300' : 'text-[#133E35]'
+          }`}>
             Your financial data is protected by industry-standard encryption and strict verification flows.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-left">
-          <div className="glass-card p-5 sm:p-6 rounded-2xl border border-white/[0.08] space-y-3">
-            <MailCheck size={22} className="text-emerald-400" />
-            <h3 className="font-bold text-base text-[var(--text-primary)]">6-Digit Email OTP</h3>
-            <p className="text-xs text-[var(--text-muted)] leading-relaxed font-medium">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 text-left">
+          <div className={`glass-card p-6 sm:p-7 rounded-2xl border space-y-3.5 ${
+            isDark ? 'border-white/[0.08]' : 'border-[#CDE9E3] bg-[#FFFFFF] shadow-sm'
+          }`}>
+            <MailCheck size={24} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
+            <h3 className="font-bold text-lg">6-Digit Email OTP</h3>
+            <p className={`text-xs sm:text-sm leading-relaxed font-medium ${
+              isDark ? 'text-slate-300' : 'text-[#133E35]'
+            }`}>
               Confidential, time-expiring 6-digit codes delivered via Resend & Supabase Auth for registration and authentication.
             </p>
           </div>
 
-          <div className="glass-card p-5 sm:p-6 rounded-2xl border border-white/[0.08] space-y-3">
-            <Lock size={22} className="text-teal-400" />
-            <h3 className="font-bold text-base text-[var(--text-primary)]">10+ Char Password Rules</h3>
-            <p className="text-xs text-[var(--text-muted)] leading-relaxed font-medium">
+          <div className={`glass-card p-6 sm:p-7 rounded-2xl border space-y-3.5 ${
+            isDark ? 'border-white/[0.08]' : 'border-[#CDE9E3] bg-[#FFFFFF] shadow-sm'
+          }`}>
+            <Lock size={24} className={isDark ? 'text-teal-400' : 'text-[#3BAE9F]'} />
+            <h3 className="font-bold text-lg">10+ Char Password Rules</h3>
+            <p className={`text-xs sm:text-sm leading-relaxed font-medium ${
+              isDark ? 'text-slate-300' : 'text-[#133E35]'
+            }`}>
               Real-time validation for uppercase, lowercase, numbers, and symbols, with live warnings for dictionary/breached passwords.
             </p>
           </div>
 
-          <div className="glass-card p-5 sm:p-6 rounded-2xl border border-white/[0.08] space-y-3">
-            <ShieldCheck size={22} className="text-cyan-400" />
-            <h3 className="font-bold text-base text-[var(--text-primary)]">Authorized Email Change</h3>
-            <p className="text-xs text-[var(--text-muted)] leading-relaxed font-medium">
+          <div className={`glass-card p-6 sm:p-7 rounded-2xl border space-y-3.5 ${
+            isDark ? 'border-white/[0.08]' : 'border-[#CDE9E3] bg-[#FFFFFF] shadow-sm'
+          }`}>
+            <ShieldCheck size={24} className={isDark ? 'text-cyan-400' : 'text-[#147D70]'} />
+            <h3 className="font-bold text-lg">Authorized Email Change</h3>
+            <p className={`text-xs sm:text-sm leading-relaxed font-medium ${
+              isDark ? 'text-slate-300' : 'text-[#133E35]'
+            }`}>
               Email modifications require verification sent directly to your existing registered email to protect against unauthorized takeovers.
             </p>
           </div>
@@ -465,42 +592,376 @@ const Landing = () => {
       </section>
 
       {/* Bottom CTA Banner */}
-      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="glass-card p-8 sm:p-14 rounded-3xl border border-emerald-500/30 text-center space-y-6 relative overflow-hidden">
-          <div className="max-w-2xl mx-auto space-y-3">
-            <h2 className="text-3xl sm:text-5xl font-black text-[var(--text-primary)] tracking-tight">
-              Ready to Upgrade Your Financial Workspace?
-            </h2>
-            <p className="text-xs sm:text-sm text-[var(--text-muted)] font-medium">
-              Join Cashio today to experience intelligent forecasting, effortless splits, and beautiful dual-theme design.
-            </p>
-          </div>
+      <section className="py-20 pb-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className={`p-8 sm:p-14 lg:p-16 rounded-[36px] border text-center relative overflow-hidden transition-all duration-300 ${
+          isDark 
+            ? 'glass-card border-emerald-500/30 shadow-2xl shadow-emerald-950/40' 
+            : 'bg-gradient-to-br from-[#E8F4F1] via-[#FFFFFF] to-[#E8F4F1] border-[#CDE9E3] shadow-2xl shadow-[#147D70]/10'
+        }`}>
+          {/* Ambient Glowing Orbs inside the Banner */}
+          <div className={`absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl pointer-events-none ${
+            isDark ? 'bg-emerald-500/20' : 'bg-[#3BAE9F]/20'
+          }`}></div>
+          <div className={`absolute -bottom-24 -right-24 w-80 h-80 rounded-full blur-3xl pointer-events-none ${
+            isDark ? 'bg-teal-500/20' : 'bg-[#147D70]/15'
+          }`}></div>
 
-          <div className="pt-2">
-            <Link
-              to="/register"
-              className="inline-flex glass-btn-primary px-8 py-4 rounded-2xl font-bold text-sm sm:text-base items-center gap-2.5 shadow-xl shadow-emerald-500/30 hover:scale-[1.02] transition-transform"
-            >
-              <span>Get Started Now</span>
-              <ArrowRight size={18} />
-            </Link>
+          {/* Decorative Subtle Background Grid */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--border)_1px,_transparent_1px)] bg-[size:24px_24px] opacity-25 pointer-events-none"></div>
+
+          <div className="max-w-3xl mx-auto space-y-6 relative z-10">
+            {/* Top Pill Tag */}
+            <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-extrabold tracking-wide ${
+              isDark 
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
+                : 'bg-[#E8F4F1] border-[#CDE9E3] text-[#147D70]'
+            }`}>
+              <Sparkles size={14} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
+              <span>Zero Setup Fees • Free Forever Personal Finance Pro</span>
+            </div>
+
+            {/* Main Headline with Gradient */}
+            <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
+              Ready to Master Your <br className="hidden sm:inline" />
+              <span className={`bg-clip-text text-transparent ${
+                isDark 
+                  ? 'bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300' 
+                  : 'bg-gradient-to-r from-[#147D70] via-[#3BAE9F] to-[#147D70]'
+              }`}>Financial Clarity?</span>
+            </h2>
+
+            {/* Subtitle */}
+            <p className={`text-xs sm:text-base font-medium max-w-xl mx-auto leading-relaxed ${
+              isDark ? 'text-slate-300' : 'text-[#133E35]'
+            }`}>
+              Join Cashio today to experience predictive cash flow forecasts, simplified group split settlements, and bank-grade dual-layer OTP authentication.
+            </p>
+
+            {/* Dual CTA Actions */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+              <Link
+                to={user ? "/dashboard" : "/register"}
+                className="w-full sm:w-auto glass-btn-primary px-8 py-4 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl hover:scale-[1.02] transition-transform"
+              >
+                <span>{user ? "Enter Your Dashboard" : "Get Started Now"}</span>
+                <ArrowRight size={18} />
+              </Link>
+              {!user && (
+                <Link
+                  to="/login"
+                  className={`w-full sm:w-auto px-7 py-4 rounded-2xl font-bold text-sm sm:text-base border flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.05] active:scale-[0.98] cursor-pointer ${
+                    isDark 
+                      ? 'glass-elevated border-white/10 hover:border-emerald-400 hover:bg-emerald-500/15 hover:shadow-[0_0_24px_rgba(16,185,129,0.4)] text-white' 
+                      : 'bg-white border-[#CDE9E3] text-[#07241E] hover:bg-[#E8F4F1] hover:border-[#147D70] hover:text-[#147D70] hover:shadow-[0_0_24px_rgba(20,125,112,0.3)] shadow-sm'
+                  }`}
+                >
+                  <span>Sign In</span>
+                </Link>
+              )}
+            </div>
+
+            {/* Trust Checklist Badges */}
+            <div className="pt-4 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-xs font-semibold">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
+                <span className={isDark ? 'text-slate-300' : 'text-[#133E35]'}>Instant 6-Digit Email OTP</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
+                <span className={isDark ? 'text-slate-300' : 'text-[#133E35]'}>Automated Debt Simplification</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
+                <span className={isDark ? 'text-slate-300' : 'text-[#133E35]'}>Multi-Currency Support</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/[0.06] py-10 bg-[var(--bg-primary)]/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-[var(--text-muted)]">
-          <div className="flex items-center gap-2.5">
-            <img src={logoUrl} alt="Cashio" className="w-6 h-6 object-contain" />
-            <span>&copy; {new Date().getFullYear()} Cashio Smart Expense Tracker. All rights reserved.</span>
+      {/* Floating Card Luxury Footer */}
+      <footer className="relative pt-6 sm:pt-8 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Ambient Brand Watermark spanning the exact full width of the box with bottom fade-out */}
+        <div className="w-full overflow-hidden select-none pointer-events-none -mb-6 sm:-mb-14 relative z-0 flex justify-center">
+          <svg 
+            viewBox="0 0 1000 180" 
+            className="w-full h-100 select-none pointer-events-none"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <linearGradient id="cashFade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={isDark ? '#E2E8F0' : '#147D70'} stopOpacity={isDark ? '0.45' : '0.35'} />
+                <stop offset="55%" stopColor={isDark ? '#E2E8F0' : '#147D70'} stopOpacity={isDark ? '0.22' : '0.15'} />
+                <stop offset="92%" stopColor={isDark ? '#E2E8F0' : '#147D70'} stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="ioFade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={isDark ? '#34D399' : '#3BAE9F'} stopOpacity={isDark ? '0.75' : '0.65'} />
+                <stop offset="55%" stopColor={isDark ? '#34D399' : '#3BAE9F'} stopOpacity={isDark ? '0.38' : '0.28'} />
+                <stop offset="92%" stopColor={isDark ? '#34D399' : '#3BAE9F'} stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <text
+              x="0"
+              y="155"
+              textLength="1000"
+              lengthAdjust="spacingAndGlyphs"
+              fontFamily="Array-BoldWide, sans-serif"
+              fontWeight="700"
+              fontSize="175"
+            >
+              <tspan fill="url(#cashFade)">Cash</tspan>
+              <tspan fill="url(#ioFade)">io</tspan>
+            </text>
+          </svg>
+        </div>
+
+        <div className={`p-8 -mt-25 sm:p-12 lg:p-14 rounded-[32px] border relative z-10 transition-colors duration-300 ${
+          isDark 
+            ? 'glass-card border-white/10 shadow-2xl shadow-black/60' 
+            : 'bg-white/95 border-[#CDE9E3] shadow-xl shadow-[#147D70]/8'
+        }`}>
+          {/* Top Row: Brand & Multi-Column Links */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 pb-10">
+            {/* Left Brand Summary & Socials (5 Cols) */}
+            <div className="lg:col-span-5 space-y-5">
+              <Link to="/" className="inline-flex items-center gap-3 group">
+                <img 
+                  src={logoUrl} 
+                  alt="Cashio Logo" 
+                  className="w-10 h-10 object-contain drop-shadow-[0_0_12px_rgba(16,185,129,0.35)] group-hover:scale-105 transition-transform" 
+                />
+                <div>
+                  <span className="text-2xl font-black tracking-wider">
+                    Cash<span className={isDark ? "text-emerald-400" : "text-[#10B981]"}>io</span>
+                  </span>
+                  <span className={`block text-[9px] uppercase font-extrabold tracking-[0.22em] ${
+                    isDark ? 'text-slate-400' : 'text-[#5A7A73]'
+                  }`}>FINANCE PRO</span>
+                </div>
+              </Link>
+
+              <p className={`text-xs sm:text-sm font-medium leading-relaxed max-w-sm ${
+                isDark ? 'text-slate-300' : 'text-[#133E35]'
+              }`}>
+                Cashio empowers individuals and teams to master their financial flow with predictive forecasting, intelligent expense tracking, and zero-friction bill settlements.
+              </p>
+
+              {/* Social / Community Icons */}
+              <div className="flex items-center gap-3 pt-1">
+                {/* X (Twitter) */}
+                <a 
+                  href="https://twitter.com" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  aria-label="X (Twitter)"
+                  className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${
+                    isDark 
+                      ? 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:border-emerald-400/40 hover:bg-emerald-500/10' 
+                      : 'bg-[#E8F4F1] border-[#CDE9E3] text-[#147D70] hover:text-[#07241E] hover:bg-[#CDE9E3]'
+                  }`}
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                </a>
+
+                {/* Instagram */}
+                <a 
+                  href="https://instagram.com" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  aria-label="Instagram"
+                  className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${
+                    isDark 
+                      ? 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:border-emerald-400/40 hover:bg-emerald-500/10' 
+                      : 'bg-[#E8F4F1] border-[#CDE9E3] text-[#147D70] hover:text-[#07241E] hover:bg-[#CDE9E3]'
+                  }`}
+                >
+                  <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+                  </svg>
+                </a>
+
+                {/* LinkedIn */}
+                <a 
+                  href="https://linkedin.com" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  aria-label="LinkedIn"
+                  className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${
+                    isDark 
+                      ? 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:border-emerald-400/40 hover:bg-emerald-500/10' 
+                      : 'bg-[#E8F4F1] border-[#CDE9E3] text-[#147D70] hover:text-[#07241E] hover:bg-[#CDE9E3]'
+                  }`}
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                  </svg>
+                </a>
+
+                {/* GitHub */}
+                <a 
+                  href="https://github.com" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  aria-label="GitHub"
+                  className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${
+                    isDark 
+                      ? 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:border-emerald-400/40 hover:bg-emerald-500/10' 
+                      : 'bg-[#E8F4F1] border-[#CDE9E3] text-[#147D70] hover:text-[#07241E] hover:bg-[#CDE9E3]'
+                  }`}
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            {/* Right Links (7 Cols) */}
+            <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
+              {/* Product / Services Column */}
+              <div className="space-y-3.5">
+                <h4 className={`text-xs font-bold uppercase tracking-wider ${
+                  isDark ? 'text-white' : 'text-[#07241E] font-black'
+                }`}>
+                  Services
+                </h4>
+                <ul className="space-y-2.5 text-xs font-medium">
+                  <li>
+                    <a href="#features" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Expense Tracking
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#forecast" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Cash Flow Forecast
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#splits" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Group Bill Splits
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#features" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Financial Insights
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Resources Column */}
+              <div className="space-y-3.5">
+                <h4 className={`text-xs font-bold uppercase tracking-wider ${
+                  isDark ? 'text-white' : 'text-[#07241E] font-black'
+                }`}>
+                  Resources
+                </h4>
+                <ul className="space-y-2.5 text-xs font-medium">
+                  <li>
+                    <a href="#forecast" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Predictive Model
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#splits" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Debt Simplifier
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#security" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Security & OTP
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#features" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Multi-Currency
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Platform Column */}
+              <div className="space-y-3.5 col-span-2 sm:col-span-1">
+                <h4 className={`text-xs font-bold uppercase tracking-wider ${
+                  isDark ? 'text-white' : 'text-[#07241E] font-black'
+                }`}>
+                  Platform
+                </h4>
+                <ul className="space-y-2.5 text-xs font-medium">
+                  <li>
+                    <Link to="/dashboard" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Workspace
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/login" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Sign In
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/register" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Get Started
+                    </Link>
+                  </li>
+                  <li>
+                    <a href="#security" className={`transition-colors ${
+                      isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+                    }`}>
+                      Privacy & Protection
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <Link to="/login" className="hover:text-[var(--text-primary)] transition-colors">Sign In</Link>
-            <Link to="/register" className="hover:text-[var(--text-primary)] transition-colors">Register</Link>
-            <a href="#features" className="hover:text-[var(--text-primary)] transition-colors">Features</a>
-            <ThemeToggle showLabel={false} />
+          {/* Bottom Divider & Legal Bar */}
+          <div className={`pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium ${
+            isDark ? 'border-white/[0.08]' : 'border-[#CDE9E3]'
+          }`}>
+            <span className={isDark ? 'text-slate-400' : 'text-[#133E35]'}>
+              &copy; {new Date().getFullYear()} Cash<span className={isDark ? "text-emerald-400 font-bold" : "text-[#10B981] font-bold"}>io</span>. All rights reserved.
+            </span>
+
+            <div className="flex items-center gap-5 sm:gap-6">
+              <a href="#security" className={`transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+              }`}>
+                Privacy Policy
+              </a>
+              <a href="#security" className={`transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-[#133E35] hover:text-[#147D70]'
+              }`}>
+                Terms of Service
+              </a>
+              <ThemeToggle showLabel={false} />
+            </div>
           </div>
         </div>
       </footer>

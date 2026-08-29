@@ -18,20 +18,50 @@
   --border-highlight: rgba(167, 243, 208, 0.3);
 }
 
-/* Light Mode (Soothing Off-White / Pearl Mint Glass with High-Contrast Sidebar) */
+/* Light Mode (User Specified Palette: #F4FAF8, #E8F4F1, #CDE9E3, #147D70, #3BAE9F) */
 [data-theme="light"], .light {
-  --bg-primary: #EDF3F0;
-  --bg-card: rgba(255, 255, 255, 0.95);
-  --bg-elevated: rgba(255, 255, 255, 0.98);
-  --bg-inset: #E5F0EB;
+  --bg-primary: #F4FAF8;
+  --bg-card: #E8F4F1;
+  --bg-elevated: #FFFFFF;
+  --bg-inset: #E8F4F1;
   --text-primary: #07241E;
   --text-secondary: #133E35;
-  --text-muted: #1B6654;
-  --accent: #059669;
-  --accent-hover: #10B981;
-  --accent-glow: rgba(5, 150, 105, 0.2);
-  --border: rgba(16, 185, 129, 0.25);
-  --border-highlight: rgba(5, 150, 105, 0.4);
+  --text-muted: #147D70;
+  --accent: #147D70;
+  --accent-hover: #3BAE9F;
+  --accent-glow: rgba(20, 125, 112, 0.25);
+  --border: #CDE9E3;
+  --border-highlight: #3BAE9F;
+}
+
+/* Custom Brand Font: Array BoldWide */
+@font-face {
+  font-family: 'Array-BoldWide';
+  src: url('./fonts/Array_Complete/Array_Complete/Fonts/WEB/fonts/Array-BoldWide.woff2') format('woff2'),
+       url('./fonts/Array_Complete/Array_Complete/Fonts/WEB/fonts/Array-BoldWide.woff') format('woff'),
+       url('./fonts/Array_Complete/Array_Complete/Fonts/WEB/fonts/Array-BoldWide.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+  font-style: normal;
+}
+
+.font-brand-footer {
+  font-family: 'Array-BoldWide', 'Marcellus', system-ui, sans-serif !important;
+}
+
+@keyframes textShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-text-shimmer {
+  background-size: 200% auto;
+  animation: textShimmer 7s ease-in-out infinite;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -49,13 +79,13 @@ body {
 }
 
 .light body {
-  background-color: #EDF3F0;
+  background-color: #F4FAF8;
   color: #07241E;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.1) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.08) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(5, 150, 105, 0.05) 0px, transparent 60%),
-    radial-gradient(at 100% 100%, rgba(13, 148, 136, 0.08) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(59, 174, 159, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(20, 125, 112, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(232, 244, 241, 0.6) 0px, transparent 60%),
+    radial-gradient(at 100% 100%, rgba(59, 174, 159, 0.08) 0px, transparent 50%);
 }
 
 h1, h2, h3, h4, h5, h6, button, input, select, textarea {
@@ -74,11 +104,11 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light ::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.3);
+  background: #3BAE9F;
 }
 
 .light ::-webkit-scrollbar-thumb:hover {
-  background: rgba(5, 150, 105, 0.5);
+  background: #147D70;
 }
 
 /* Hide scrollbar utility */
@@ -112,12 +142,12 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-card, .light .clay {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 251, 248, 0.95) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.24);
-  border-top: 1px solid rgba(255, 255, 255, 1);
+  background: linear-gradient(135deg, #FFFFFF 0%, #E8F4F1 100%);
+  border: 1px solid #CDE9E3;
+  border-top: 1px solid #FFFFFF;
   box-shadow: 
-    0 16px 36px -12px rgba(16, 185, 129, 0.14),
-    0 4px 14px rgba(0, 0, 0, 0.04),
+    0 14px 32px -12px rgba(20, 125, 112, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.03),
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
 }
 
@@ -136,11 +166,11 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-elevated, .light .clay-elevated {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(240, 248, 244, 0.94) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.24);
-  border-top: 1px solid rgba(255, 255, 255, 1);
+  background: linear-gradient(135deg, #FFFFFF 0%, #E8F4F1 100%);
+  border: 1px solid #CDE9E3;
+  border-top: 1px solid #FFFFFF;
   box-shadow: 
-    0 8px 20px -4px rgba(16, 185, 129, 0.12),
+    0 6px 18px -4px rgba(20, 125, 112, 0.1),
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
 }
 
@@ -159,12 +189,12 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-inset, .light .clay-inset {
-  background: #E5F0EB;
+  background: #E8F4F1;
   color: #07241E;
-  border: 1px solid rgba(16, 185, 129, 0.28);
-  border-bottom: 1px solid rgba(5, 150, 105, 0.4);
+  border: 1px solid #CDE9E3;
+  border-bottom: 1px solid #3BAE9F;
   box-shadow: 
-    inset 0 2px 5px rgba(5, 150, 105, 0.08),
+    inset 0 2px 4px rgba(20, 125, 112, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
@@ -176,10 +206,10 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-inset:focus-within, .light .clay-inset:focus-within {
-  border-color: rgba(5, 150, 105, 0.6);
+  border-color: #147D70;
   box-shadow: 
-    inset 0 1px 3px rgba(5, 150, 105, 0.1),
-    0 0 14px rgba(16, 185, 129, 0.25);
+    inset 0 1px 3px rgba(20, 125, 112, 0.1),
+    0 0 14px rgba(59, 174, 159, 0.35);
 }
 
 /* Glass Buttons */
@@ -197,12 +227,12 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-btn, .light .clay-btn {
-  background: rgba(16, 185, 129, 0.14);
-  color: #065F46;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-top: 1px solid rgba(255, 255, 255, 0.95);
+  background: #E8F4F1;
+  color: #147D70;
+  border: 1px solid #CDE9E3;
+  border-top: 1px solid #FFFFFF;
   box-shadow: 
-    0 3px 10px rgba(16, 185, 129, 0.1),
+    0 3px 10px rgba(20, 125, 112, 0.08),
     inset 0 1px 1px rgba(255, 255, 255, 0.9);
 }
 
@@ -216,9 +246,10 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-btn:hover, .light .clay-btn:hover {
-  background: rgba(16, 185, 129, 0.24);
-  border-color: rgba(5, 150, 105, 0.45);
-  box-shadow: 0 5px 15px rgba(16, 185, 129, 0.2);
+  background: #CDE9E3;
+  border-color: #3BAE9F;
+  color: #07241E;
+  box-shadow: 0 5px 15px rgba(20, 125, 112, 0.15);
 }
 
 .glass-btn:active, .clay-btn:active {
@@ -250,6 +281,23 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
   transform: translateY(-1.5px);
 }
 
+.light .glass-btn-primary {
+  background: linear-gradient(135deg, #147D70 0%, #0E5E54 100%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 
+    0 8px 22px -4px rgba(20, 125, 112, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  color: #FFFFFF;
+}
+
+.light .glass-btn-primary:hover {
+  background: linear-gradient(135deg, #3BAE9F 0%, #147D70 100%);
+  box-shadow: 
+    0 10px 26px -4px rgba(59, 174, 159, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
 .glass-btn-primary:active {
   transform: translateY(0);
 }
@@ -268,9 +316,9 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-nav:hover, .light .clay-nav:hover {
-  background: rgba(16, 185, 129, 0.16);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #04241D;
+  background: #E8F4F1;
+  border-color: #CDE9E3;
+  color: #07241E;
 }
 
 .glass-nav-active, .clay-nav-active {
@@ -285,11 +333,11 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-nav-active, .light .clay-nav-active {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.22) 100%) !important;
-  border: 1.5px solid rgba(16, 185, 129, 0.45) !important;
-  border-top: 1.5px solid rgba(255, 255, 255, 0.95) !important;
-  color: #042D24 !important;
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2) !important;
+  background: linear-gradient(135deg, #E8F4F1 0%, #CDE9E3 100%) !important;
+  border: 1.5px solid #3BAE9F !important;
+  border-top: 1.5px solid #FFFFFF !important;
+  color: #07241E !important;
+  box-shadow: 0 4px 16px rgba(20, 125, 112, 0.15) !important;
 }
 
 /* Glass Sidebar - High Contrast in Light Theme */
@@ -302,9 +350,9 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-sidebar, .light .clay-sidebar {
-  background: linear-gradient(180deg, #E2ECE6 0%, #D8E6DE 100%);
-  border-right: 1.5px solid rgba(16, 185, 129, 0.32);
-  box-shadow: 4px 0 25px rgba(16, 185, 129, 0.1);
+  background: linear-gradient(180deg, #E8F4F1 0%, #F4FAF8 100%);
+  border-right: 1.5px solid #CDE9E3;
+  box-shadow: 4px 0 25px rgba(20, 125, 112, 0.08);
 }
 
 /* Glass Pill Badge */
@@ -336,68 +384,69 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .text-slate-300 {
-  color: #164238 !important;
+  color: #133E35 !important;
 }
 
 .light .text-slate-400 {
-  color: #316458 !important;
+  color: #147D70 !important;
 }
 
 .light .text-slate-200 {
-  color: #0C2E26 !important;
+  color: #07241E !important;
 }
 
 .light .border-white\/10, 
 .light .border-white\/15, 
 .light .border-white\/20,
 .light .border-white\/5 {
-  border-color: rgba(16, 185, 129, 0.22) !important;
+  border-color: #CDE9E3 !important;
 }
 
 .light .border-white\/\[0\.06\],
 .light .border-white\/\[0\.08\] {
-  border-color: rgba(16, 185, 129, 0.25) !important;
+  border-color: #CDE9E3 !important;
 }
 
 .light .bg-\[\#031512\],
 .light .bg-\[\#030F0D\],
 .light .bg-\[\#02120F\],
 .light .bg-\[\#021814\]\/90 {
-  background-color: #E2ECE6 !important;
+  background-color: #E8F4F1 !important;
 }
 
 .light .bg-emerald-950\/25,
 .light .bg-emerald-950\/30,
 .light .bg-emerald-950\/40,
-.light .bg-teal-950\/40 {
-  background-color: rgba(16, 185, 129, 0.15) !important;
+.light .bg-emerald-950\/50,
+.light .bg-emerald-950\/60,
+.light .bg-emerald-950\/70,
+.light .bg-emerald-950\/80 {
+  background-color: #E8F4F1 !important;
 }
 
-/* Recharts Glass Tooltip */
-.recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: rgba(4, 28, 23, 0.85) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(110, 231, 183, 0.25) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.3) !important;
-  border-radius: 18px !important;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6) !important;
+.light .bg-black\/40 {
+  background-color: #E8F4F1 !important;
 }
 
-.light .recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: rgba(255, 255, 255, 0.98) !important;
-  border: 1.5px solid rgba(16, 185, 129, 0.35) !important;
-  color: #07241E !important;
-  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.15) !important;
+.light .border-emerald-500\/20,
+.light .border-emerald-500\/25,
+.light .border-emerald-500\/30,
+.light .border-emerald-400\/30,
+.light .border-emerald-400\/35 {
+  border-color: #CDE9E3 !important;
 }
 
-/* Date / Select Input */
-input[type="date"]::-webkit-calendar-picker-indicator,
-select {
-  filter: invert(0.85) hue-rotate(130deg) brightness(1.2);
+.light .text-emerald-300,
+.light .text-emerald-400 {
+  color: #147D70 !important;
 }
 
-.light input[type="date"]::-webkit-calendar-picker-indicator,
-.light select {
-  filter: none;
+.light .text-teal-300,
+.light .text-teal-400 {
+  color: #147D70 !important;
+}
+
+.light .text-cyan-300,
+.light .text-cyan-400 {
+  color: #147D70 !important;
 }

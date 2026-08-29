@@ -13,7 +13,7 @@ const Layout = () => {
   const location = useLocation();
 
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Expenses', path: '/expenses', icon: Receipt },
     { name: 'Forecast', path: '/forecast', icon: TrendingUp },
     { name: 'Splits', path: '/splits', icon: Users },
@@ -52,7 +52,9 @@ const Layout = () => {
       }`}>
         <div className="flex items-center gap-2.5">
           <img src={logoUrl} alt="Cashio Logo" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-          <span className="text-xl font-black tracking-tight text-[var(--text-primary)]">Cashio</span>
+          <span className="text-xl font-black tracking-tight text-[var(--text-primary)]">
+            Cash<span className="text-[#10B981] dark:text-emerald-400">io</span>
+          </span>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -87,8 +89,10 @@ const Layout = () => {
           <div className="flex items-center gap-3">
             <img src={logoUrl} alt="Cashio Logo" className="w-9 h-9 md:w-10 md:h-10 object-contain drop-shadow-[0_0_12px_rgba(16,185,129,0.35)]" />
             <div>
-              <span className="text-xl md:text-2xl font-black tracking-wider text-[var(--text-primary)]">Cashio</span>
-              <span className="block text-[8px] md:text-[9px] uppercase font-extrabold tracking-[0.2em] text-emerald-600 dark:text-emerald-400/90">FINANCE PRO</span>
+              <span className="text-xl md:text-2xl font-black tracking-wider text-[var(--text-primary)]">
+                Cash<span className="text-[#10B981] dark:text-emerald-400">io</span>
+              </span>
+              <span className="block text-[8px] md:text-[9px] uppercase font-extrabold tracking-[0.2em] text-[#5A7A73] dark:text-slate-400">FINANCE PRO</span>
             </div>
           </div>
 

@@ -71,7 +71,7 @@ const Register = () => {
           setStep(2);
           setResendTimer(60);
         } else {
-          navigate('/');
+          navigate('/dashboard');
         }
       } else {
         const errVal = res.error || res.message || 'Registration failed';
@@ -109,7 +109,7 @@ const Register = () => {
     try {
       const res = await verifyRegisterOtp(email, otpCode.trim());
       if (res.success) {
-        navigate('/');
+        navigate('/dashboard');
       } else {
         setError(res.error || 'Invalid verification code');
       }
@@ -176,8 +176,13 @@ const Register = () => {
             alt="Cashio Logo" 
             className="w-16 h-16 object-contain mx-auto mb-2 drop-shadow-[0_0_18px_rgba(16,185,129,0.45)] hover:scale-105 transition-transform duration-300" 
           />
-          <h1 className="text-3xl font-black text-white tracking-tight">Cashio</h1>
-          <p className="text-xs font-semibold text-emerald-300/80 mt-1">
+          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
+            Cash<span className="text-[#10B981] dark:text-emerald-400">io</span>
+          </h1>
+          <span className="block text-[8px] md:text-[9px] uppercase font-extrabold tracking-[0.22em] text-[#5A7A73] dark:text-slate-400 mt-0.5">
+            FINANCE PRO
+          </span>
+          <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-300/80 mt-1.5">
             {step === 1 ? 'Create your smart finance workspace' : 'Authenticate Your Email Address'}
           </p>
         </div>
