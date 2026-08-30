@@ -138,6 +138,15 @@ async function getTransporter() {
   return null;
 }
 
+function getMailConfig() {
+  const user = process.env.EMAIL_USER || process.env.email_user || process.env.EMAIL_USERNAME || process.env.GMAIL_USER;
+  const pass = process.env.EMAIL_PASS || process.env.email_pass || process.env.EMAIL_PASSWORD || process.env.GMAIL_PASS;
+  const service = process.env.EMAIL_SERVICE || process.env.email_service || 'gmail';
+  const from = process.env.EMAIL_FROM || process.env.email_from;
+  const resendKey = process.env.RESEND_API_KEY || process.env.resend_api_key;
+  return { user, pass, service, from, resendKey };
+}
+
 /**
  * Send an OTP verification email with rich HTML formatting
  */
@@ -149,7 +158,10 @@ export async function sendOtpEmail(toEmail, code, type = 'REGISTER') {
   };
 
   const subject = `Cashio - ${typeTitles[type] || 'Verification Code'}`;
-  const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER || '"Cashio Security" <onboarding@resend.dev>';
+  const config = getMailConfig();
+
+  console.log(`[MAILER DIAGNOSTIC] Initiating email delivery to ${toEmail}`);
+  console.log(`[MAILER DIAGNOSTIC] Config state -> Gmail User: ${Boolean(config.user)}, Gmail Pass: ${Boolean(config.pass)}, Resend Key: ${Boolean(config.resendKey)}`);
 
   const html = `
     <!DOCTYPE html>
@@ -193,58 +205,51 @@ export async function sendOtpEmail(toEmail, code, type = 'REGISTER') {
 
   const text = `Your Cashio verification code is: ${code}. It expires in 10 minutes.`;
 
-  // 1. If Gmail credentials are provided, use Gmail directly (sends to ANY email address without domain restriction)
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  // 1. Primary: If Gmail credentials exist, send directly through Gmail SMTP (sends to ANY email)
+  if (config.user && config.pass) {
     try {
-      const mailTransporter = await getTransporter();
-      if (mailTransporter) {
-        const cleanUser = process.env.EMAIL_USER.trim();
-        const smtpFrom = `"Cashio Security" <${cleanUser}>`;
-        const sendPromise = mailTransporter.sendMail({
-          from: smtpFrom,
-          to: toEmail,
-          subject,
-          text,
-          html
-        });
+      const cleanUser = config.user.trim();
+      const cleanPass = config.pass.replace(/\s+/g, '');
+      console.log(`[MAILER GMAIL] Connecting to smtp.gmail.com:465 with account ${cleanUser}...`);
 
-        const info = await withTimeout(sendPromise, 15000);
-        console.log(`[MAILER] Email successfully dispatched via Gmail to ${toEmail} (ID: ${info.messageId})`);
-        return { success: true, messageId: info.messageId };
-      }
+      const gmailTransporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+          user: cleanUser,
+          pass: cleanPass
+        },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+
+      const info = await withTimeout(gmailTransporter.sendMail({
+        from: `"Cashio Security" <${cleanUser}>`,
+        to: toEmail,
+        subject,
+        text,
+        html
+      }), 15000);
+
+      console.log(`[MAILER SUCCESS] Email dispatched via Gmail to ${toEmail} (ID: ${info.messageId})`);
+      return { success: true, messageId: info.messageId };
     } catch (err) {
-      console.error(`[MAILER] Gmail delivery attempt failed for ${toEmail}:`, err.message);
+      console.error(`[MAILER GMAIL ERROR] Failed sending to ${toEmail}:`, err.message || err);
     }
   }
 
-  // 2. Try Resend if configured
-  if (process.env.RESEND_API_KEY) {
+  // 2. Secondary: If Resend API Key is set
+  if (config.resendKey) {
+    console.log(`[MAILER RESEND] Attempting dispatch via Resend API...`);
     const resendResult = await sendViaResend(toEmail, subject, html, text);
     if (resendResult && resendResult.success) return resendResult;
   }
 
-  // 3. Fallback: Other custom SMTP / Ethereal
-  try {
-    const mailTransporter = await getTransporter();
-    if (!mailTransporter) {
-      console.error('[MAILER] No active email transporter configured. Make sure EMAIL_USER and EMAIL_PASS are set in environment variables.');
-      return { success: false, reason: 'No active email transporter configured' };
-    }
-
-    const smtpFrom = process.env.EMAIL_FROM || '"Cashio Security" <onboarding@resend.dev>';
-    const sendPromise = mailTransporter.sendMail({
-      from: smtpFrom,
-      to: toEmail,
-      subject,
-      text,
-      html
-    });
-
-    const info = await withTimeout(sendPromise, 15000);
-    console.log(`[MAILER] Email successfully dispatched to ${toEmail} (ID: ${info.messageId})`);
-    return { success: true, messageId: info.messageId };
-  } catch (err) {
-    console.error(`[MAILER] SMTP fallback failed for ${toEmail}:`, err.message);
-    return { success: false, error: err.message };
-  }
+  console.warn(`[MAILER WARNING] No successful delivery method for ${toEmail}. Please check Gmail or Resend credentials.`);
+  return { success: false, error: 'All email delivery channels failed' };
 }
