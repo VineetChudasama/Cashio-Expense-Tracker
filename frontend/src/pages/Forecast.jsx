@@ -48,7 +48,6 @@ const Forecast = () => {
     );
   }
 
-  // Combine actuals and projections into a single dataset for the chart
   const chartData = [];
   
   if (data) {

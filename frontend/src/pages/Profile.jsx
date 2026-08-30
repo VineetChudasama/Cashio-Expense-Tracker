@@ -35,7 +35,6 @@ const Profile = () => {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Personal Info form states
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [currency, setCurrency] = useState('USD ($)');
@@ -43,13 +42,11 @@ const Profile = () => {
   const [infoSuccess, setInfoSuccess] = useState('');
   const [infoError, setInfoError] = useState('');
 
-  // Email Change OTP Modal State
   const [showEmailOtpModal, setShowEmailOtpModal] = useState(false);
   const [emailOtpCode, setEmailOtpCode] = useState('');
   const [isVerifyingEmailOtp, setIsVerifyingEmailOtp] = useState(false);
   const [emailOtpError, setEmailOtpError] = useState('');
 
-  // Password Change state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -61,13 +58,11 @@ const Profile = () => {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
-  // Password Change OTP Modal State
   const [showPasswordOtpModal, setShowPasswordOtpModal] = useState(false);
   const [passwordOtpCode, setPasswordOtpCode] = useState('');
   const [isVerifyingPasswordOtp, setIsVerifyingPasswordOtp] = useState(false);
   const [passwordOtpError, setPasswordOtpError] = useState('');
 
-  // Delete Account State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -100,7 +95,6 @@ const Profile = () => {
     fetchProfile();
   }, []);
 
-  // Update Personal Info (Name and Currency / Trigger Email OTP if changed)
   const handleUpdateInfo = async (e) => {
     e.preventDefault();
     setInfoError('');
@@ -108,7 +102,6 @@ const Profile = () => {
 
     const isEmailChanged = email.trim().toLowerCase() !== profileData?.email?.toLowerCase();
 
-    // If only name or currency changed
     if (!isEmailChanged) {
       setIsSavingInfo(true);
       try {
@@ -142,7 +135,6 @@ const Profile = () => {
       return;
     }
 
-    // If email is changing, trigger Email OTP
     setIsSavingInfo(true);
     try {
       const res = await usersApi.sendEmailOtp({ newEmail: email.trim() });
@@ -160,7 +152,6 @@ const Profile = () => {
     }
   };
 
-  // Confirm Email Change with OTP
   const handleConfirmEmailOtp = async (e) => {
     e.preventDefault();
     setEmailOtpError('');
@@ -193,13 +184,11 @@ const Profile = () => {
     }
   };
 
-  // Initiate Password Change (Validates inputs & Sends OTP)
   const handleInitiatePasswordChange = async (e) => {
     e.preventDefault();
     setPasswordError('');
     setPasswordSuccess('');
 
-    // Validate Password Strength Rules
     const criteria = checkPasswordCriteria(newPassword);
     if (!criteria.allValid) {
       setShowNewPasswordRules(true);
@@ -242,7 +231,6 @@ const Profile = () => {
     }
   };
 
-  // Confirm Password Change with OTP
   const handleConfirmPasswordOtp = async (e) => {
     e.preventDefault();
     setPasswordOtpError('');
@@ -682,7 +670,7 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Danger Zone: Delete Account (Full Width Span) */}
+      {/* Danger Zone: Delete Account */}
       <div className="glass-card p-5 sm:p-6 lg:p-7 border border-rose-500/20 bg-rose-950/10 rounded-3xl w-full">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5">
@@ -713,7 +701,6 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* EMAIL CHANGE OTP MODAL */}
       {showEmailOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay">
           <motion.div 
@@ -796,7 +783,6 @@ const Profile = () => {
         </div>
       )}
 
-      {/* PASSWORD CHANGE OTP MODAL */}
       {showPasswordOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay">
           <motion.div 
@@ -878,7 +864,6 @@ const Profile = () => {
         </div>
       )}
 
-      {/* DELETE ACCOUNT CONFIRMATION MODAL */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay">
           <motion.div 

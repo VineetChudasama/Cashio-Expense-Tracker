@@ -82,7 +82,6 @@ export async function verifyEmailOTP(email, code, type) {
   const normalizedEmail = email.toLowerCase().trim();
   const normalizedCode = code.toString().trim();
 
-  // 1. Check local database record first
   const record = await prisma.emailVerification.findFirst({
     where: {
       email: normalizedEmail,
@@ -96,12 +95,10 @@ export async function verifyEmailOTP(email, code, type) {
       await prisma.emailVerification.delete({ where: { id: record.id } });
       return { valid: false, error: 'Verification code has expired. Please request a new one.' };
     }
-    // Delete used OTP
     await prisma.emailVerification.delete({ where: { id: record.id } });
     return { valid: true };
   }
 
-  // 2. If Supabase is configured, verify with Supabase Auth
   if (isSupabaseConfigured()) {
     const supabaseCheck = await verifySupabaseEmailOTP(normalizedEmail, normalizedCode, type);
     if (supabaseCheck.valid) {

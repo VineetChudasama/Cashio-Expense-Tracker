@@ -10,7 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 const Splits = () => {
   const { user } = useAuth();
   const { isDark } = useTheme();
-  const [activeTab, setActiveTab] = useState('shared'); // shared, balances, settle
+  const [activeTab, setActiveTab] = useState('shared');
   const [sharedExpenses, setSharedExpenses] = useState([]);
   const [balances, setBalances] = useState([]);
   const [settlements, setSettlements] = useState([]);

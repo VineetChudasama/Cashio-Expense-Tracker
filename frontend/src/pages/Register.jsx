@@ -10,7 +10,7 @@ import ThemeToggle from '../components/ThemeToggle';
 
 const Register = () => {
   const { isDark, logoUrl } = useTheme();
-  const [step, setStep] = useState(1); // 1: details, 2: otp verification
+  const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,7 +20,6 @@ const Register = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Resend timer
   const [resendTimer, setResendTimer] = useState(60);
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
@@ -42,7 +41,6 @@ const Register = () => {
     e.preventDefault();
     setError('');
 
-    // Strict Password Validation
     const criteria = checkPasswordCriteria(password);
     if (!criteria.allValid) {
       setShowPasswordRules(true);
@@ -155,11 +153,9 @@ const Register = () => {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-[var(--bg-primary)] px-4 py-6 sm:py-10 overflow-hidden selection:bg-[#10B981]/30 selection:text-[#34D399]">
-      {/* Ambient background light orbs */}
       <div className="fixed top-[15%] left-[20%] w-[35vw] h-[35vw] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[15%] right-[20%] w-[35vw] h-[35vw] rounded-full bg-teal-500/10 blur-[130px] pointer-events-none"></div>
 
-      {/* Top Navigation & Theme Toggle Bar */}
       <div className="w-full max-w-md flex items-center justify-between mb-3 sm:mb-4 px-1 z-20">
         <Link 
           to="/" 
@@ -222,7 +218,6 @@ const Register = () => {
         </AnimatePresence>
 
         {step === 1 ? (
-          /* Step 1: User Information Form */
           <form onSubmit={handleRegisterSubmit} className="space-y-4">
             <div>
               <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">Full Name</label>
@@ -274,7 +269,6 @@ const Register = () => {
                 </button>
               </div>
 
-              {/* Interactive Password Requirements Checklist (Hidden unless clicked / focused) */}
               <PasswordRequirements 
                 password={password} 
                 isVisible={showPasswordRules} 
@@ -297,7 +291,6 @@ const Register = () => {
             </button>
           </form>
         ) : (
-          /* Step 2: 6-Digit Email OTP Verification Form */
           <form onSubmit={handleVerifyOtp} className="space-y-5">
             <div className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/25 text-center">
               <p className="text-xs text-slate-300">

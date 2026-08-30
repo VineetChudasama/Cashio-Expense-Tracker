@@ -17,16 +17,13 @@ export const checkPasswordCriteria = (password = '') => {
   const hasNumber = hasInput && /[0-9]/.test(password);
   const hasSpecial = hasInput && /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`§±]/.test(password);
   
-  // Check if it matches common weak password list
   const isCommonPassword = hasInput && COMMON_WEAK_LIST.includes(password.toLowerCase().trim());
   const isNotCommon = hasInput && !isCommonPassword;
 
-  // 5 visible rules
   const visibleRulesPassed = hasInput 
     ? [isMinLength, hasUppercase, hasLowercase, hasNumber, hasSpecial].filter(Boolean).length 
     : 0;
   
-  // Progress bar is in 1:1 sync with the 5 visible parameters (0%, 20%, 40%, 60%, 80%, 100%)
   const strengthPercent = Math.round((visibleRulesPassed / 5) * 100);
 
   let strength = 'Enter password';
@@ -101,7 +98,6 @@ const PasswordRequirements = ({ password = '', isVisible = false }) => {
           className="overflow-hidden"
         >
           <div className="p-3.5 rounded-2xl bg-[#021814]/90 border border-emerald-500/20 backdrop-blur-md space-y-3">
-            {/* Strength Bar */}
             <div>
               <div className="flex justify-between items-center text-[11px] font-bold mb-1.5">
                 <span className="text-slate-300 flex items-center gap-1">
@@ -126,7 +122,6 @@ const PasswordRequirements = ({ password = '', isVisible = false }) => {
               </div>
             </div>
 
-            {/* Checklist (5 Parameters) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 border-t border-white/5">
               {requirements.map((req, idx) => (
                 <div 
@@ -145,7 +140,6 @@ const PasswordRequirements = ({ password = '', isVisible = false }) => {
               ))}
             </div>
 
-            {/* Common Breached Password Warning Popup Banner */}
             <AnimatePresence>
               {criteria.isCommonPassword && (
                 <motion.div

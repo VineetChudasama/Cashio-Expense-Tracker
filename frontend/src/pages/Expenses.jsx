@@ -28,7 +28,6 @@ const Expenses = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   
-  // Filters
   const [categoryFilter, setCategoryFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -69,7 +68,6 @@ const Expenses = () => {
     setStartDate('');
     setEndDate('');
     setPage(1);
-    // Fetch immediately with cleared filters
     setTimeout(() => {
       expenses.getAll({ page: 1, limit: 10 }).then(res => {
         if (res.success) {

@@ -6,12 +6,11 @@ import { format } from 'date-fns';
 
 const ShareExpenseModal = ({ splitToEdit, onClose }) => {
   const isEditing = Boolean(splitToEdit);
-  const [step, setStep] = useState(isEditing ? 2 : 1); // 1: pick expense, 2: add participants
+  const [step, setStep] = useState(isEditing ? 2 : 1);
   const [expenseList, setExpenseList] = useState([]);
   const [loadingExpenses, setLoadingExpenses] = useState(!isEditing);
   const [selectedExpense, setSelectedExpense] = useState(splitToEdit?.expense || null);
 
-  // Participant search
   const [searchEmail, setSearchEmail] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -48,7 +47,6 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
     }
   }, [isEditing]);
 
-  // Debounced user search
   useEffect(() => {
     if (!searchEmail || searchEmail.length < 2) {
       setSearchResults([]);
@@ -62,7 +60,6 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
       try {
         const res = await users.search(searchEmail);
         if (res.success) {
-          // Filter out users already added
           const existingIds = new Set(participants.map(p => p.userId));
           setSearchResults(res.data.filter(u => !existingIds.has(u.id)));
         }

@@ -42,7 +42,7 @@ const Dashboard = () => {
 
   const totalSpent = summary.reduce((acc, curr) => acc + curr.total, 0);
   const expenseCount = summary.reduce((acc, curr) => acc + curr.count, 0);
-  const dailyAverage = totalSpent / 30; // Approximation for month
+  const dailyAverage = totalSpent / 30;
   const topCategory = summary.length > 0 ? [...summary].sort((a,b) => b.total - a.total)[0] : null;
 
   const containerVariants = {

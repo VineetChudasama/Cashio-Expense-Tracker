@@ -20,7 +20,6 @@ function ScrollToTop() {
   return null;
 }
 
-// Route-level Dynamic Code Splitting
 const Landing = React.lazy(() => import('./pages/Landing'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
@@ -49,7 +48,6 @@ function App() {
           <ScrollToTop />
           <React.Suspense fallback={<PageLoader />}>
             <Routes>
-              {/* Public Pages */}
               <Route path="/" element={<Landing />} />
               <Route path="/landing" element={<Landing />} />
               <Route path="/login" element={<Login />} />
@@ -59,7 +57,6 @@ function App() {
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
               
-              {/* Protected Workspace Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<Layout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
@@ -71,7 +68,6 @@ function App() {
                 </Route>
               </Route>
 
-              {/* Catch-all redirect to Landing */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </React.Suspense>

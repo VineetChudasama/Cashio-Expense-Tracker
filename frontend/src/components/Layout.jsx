@@ -22,7 +22,6 @@ const Layout = () => {
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -34,14 +33,12 @@ const Layout = () => {
     };
   }, [mobileMenuOpen]);
 
-  // Close menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] selection:bg-[#10B981]/30 selection:text-[#34D399]">
-      {/* Ambient background light orbs for true Glassmorphic depth */}
       <div className="fixed top-[-10%] left-[15%] w-[45vw] h-[45vw] rounded-full bg-emerald-500/10 blur-[130px] pointer-events-none -z-10 animate-pulse duration-1000"></div>
       <div className="fixed bottom-[-10%] right-[10%] w-[40vw] h-[40vw] rounded-full bg-teal-600/10 blur-[140px] pointer-events-none -z-10"></div>
       <div className="fixed top-[40%] right-[25%] w-[30vw] h-[30vw] rounded-full bg-cyan-500/5 blur-[120px] pointer-events-none -z-10"></div>

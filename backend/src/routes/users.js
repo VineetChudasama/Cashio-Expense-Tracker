@@ -10,7 +10,6 @@ const router = express.Router();
 const prisma = new PrismaClient();
 router.use(authMiddleware);
 
-// Get current user profile with stats
 router.get('/profile', async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -34,7 +33,6 @@ router.get('/profile', async (req, res) => {
 
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-    // Aggregate total expenses sum
     const expenseAgg = await prisma.expense.aggregate({
       where: { userId: req.user.id },
       _sum: { amount: true }
@@ -52,7 +50,6 @@ router.get('/profile', async (req, res) => {
   }
 });
 
-// Update basic profile details (Name and Currency)
 router.put('/profile', [
   body('name').optional().notEmpty().withMessage('Name cannot be empty'),
   body('currency').optional()
@@ -88,7 +85,6 @@ router.put('/profile', [
   }
 });
 
-// Request OTP to change password
 router.post('/send-password-otp', [
   body('currentPassword').notEmpty().withMessage('Current password is required')
 ], async (req, res) => {
@@ -116,7 +112,6 @@ router.post('/send-password-otp', [
   }
 });
 
-// Verify OTP and update password
 router.put('/change-password-with-otp', [
   body('currentPassword').notEmpty().withMessage('Current password is required'),
   body('newPassword').notEmpty().withMessage('New password is required'),
@@ -136,13 +131,11 @@ router.put('/change-password-with-otp', [
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-    // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ success: false, error: 'Current password is incorrect' });
     }
 
-    // Verify OTP
     const verification = await verifyEmailOTP(user.email, otpCode, 'CHANGE_PASSWORD');
     if (!verification.valid) {
       return res.status(400).json({ success: false, error: verification.error });
@@ -160,7 +153,6 @@ router.put('/change-password-with-otp', [
   }
 });
 
-// Request OTP to change email address
 router.post('/send-email-otp', [
   body('newEmail').isEmail().withMessage('Please provide a valid new email address')
 ], async (req, res) => {
@@ -196,7 +188,6 @@ router.post('/send-email-otp', [
   }
 });
 
-// Verify OTP and update email address
 router.put('/change-email-with-otp', [
   body('newEmail').isEmail().withMessage('Please provide a valid new email address'),
   body('otpCode').notEmpty().withMessage('6-digit verification code is required')
@@ -211,7 +202,6 @@ router.put('/change-email-with-otp', [
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-    // Verify OTP sent to current registered email
     const verification = await verifyEmailOTP(user.email, otpCode, 'CHANGE_EMAIL');
     if (!verification.valid) {
       return res.status(400).json({ success: false, error: verification.error });
@@ -239,7 +229,6 @@ router.put('/change-email-with-otp', [
   }
 });
 
-// Permanently delete user account and associated data
 router.delete('/account', async (req, res) => {
   try {
     const { password } = req.body || {};
@@ -254,12 +243,10 @@ router.delete('/account', async (req, res) => {
     }
 
     await prisma.$transaction(async (tx) => {
-      // 1. Delete participations where user is participant
       await tx.participant.deleteMany({
         where: { userId: req.user.id }
       });
 
-      // 2. Find shared expenses created by this user and delete their participants
       const userSharedExpenses = await tx.sharedExpense.findMany({
         where: { createdByUserId: req.user.id },
         select: { id: true }
@@ -274,22 +261,18 @@ router.delete('/account', async (req, res) => {
         });
       }
 
-      // 3. Delete recurring patterns
       await tx.recurringPattern.deleteMany({
         where: { userId: req.user.id }
       });
 
-      // 4. Delete user's expenses
       await tx.expense.deleteMany({
         where: { userId: req.user.id }
       });
 
-      // 5. Delete email verification OTPs
       await tx.emailVerification.deleteMany({
         where: { email: user.email }
       });
 
-      // 6. Delete user record
       await tx.user.delete({
         where: { id: req.user.id }
       });

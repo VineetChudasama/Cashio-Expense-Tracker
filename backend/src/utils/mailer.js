@@ -3,9 +3,6 @@ import nodemailer from 'nodemailer';
 let transporter = null;
 let etherealAttempted = false;
 
-/**
- * Helper with timeout to prevent hanging on network/SMTP connections
- */
 function withTimeout(promise, ms = 15000) {
   let timeoutId;
   const timeoutPromise = new Promise((_, reject) => {
@@ -14,9 +11,6 @@ function withTimeout(promise, ms = 15000) {
   return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
 }
 
-/**
- * Send email via Brevo (Sendinblue) HTTP REST API (Works 100% on Render without SMTP port blocking)
- */
 async function sendViaBrevo(toEmail, subject, html, text) {
   const apiKey = process.env.BREVO_API_KEY || process.env.brevo_api_key;
   if (!apiKey) return null;
@@ -247,13 +241,11 @@ export async function sendOtpEmail(toEmail, code, type = 'REGISTER') {
 
   const text = `Your Cashio verification code is: ${code}. It expires in 10 minutes.`;
 
-  // 1. Primary for Render: Brevo HTTP REST API (Bypasses Render SMTP port blocking, sends to ANY email)
   if (config.brevoKey) {
     const brevoResult = await sendViaBrevo(toEmail, subject, html, text);
     if (brevoResult && brevoResult.success) return brevoResult;
   }
 
-  // 2. Secondary: Gmail SMTP (if running locally or on hosting with open SMTP ports)
   if (config.user && config.pass) {
     try {
       const cleanUser = config.user.trim();
@@ -291,7 +283,6 @@ export async function sendOtpEmail(toEmail, code, type = 'REGISTER') {
     }
   }
 
-  // 3. Tertiary: Resend API (Works over HTTP, sends to account owner email or verified domains)
   if (config.resendKey) {
     console.log(`[MAILER RESEND] Attempting dispatch via Resend API...`);
     const resendResult = await sendViaResend(toEmail, subject, html, text);

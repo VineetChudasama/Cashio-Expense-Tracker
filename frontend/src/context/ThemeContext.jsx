@@ -8,7 +8,6 @@ export const ThemeProvider = ({ children }) => {
     if (savedTheme === 'light' || savedTheme === 'dark') {
       return savedTheme;
     }
-    // Default to dark theme for luxury emerald styling
     return 'dark';
   });
 
@@ -27,7 +26,6 @@ export const ThemeProvider = ({ children }) => {
     }
     localStorage.setItem('cashio_theme', theme);
 
-    // Dynamically update favicon
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) {
       favicon.href = logoUrl;

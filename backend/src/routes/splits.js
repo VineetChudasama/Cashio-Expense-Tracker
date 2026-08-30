@@ -92,12 +92,10 @@ router.get('/balances', async (req, res) => {
         if (p.settled) continue;
         
         if (isCreator && p.userId !== req.user.id) {
-          // They owe me
           const current = balances.get(p.userId) || { id: p.userId, name: p.user.name, email: p.user.email, amount: 0 };
           current.amount += p.amountOwed;
           balances.set(p.userId, current);
         } else if (!isCreator && p.userId === req.user.id) {
-          // I owe them (creator)
           const current = balances.get(se.createdByUserId) || { id: se.createdBy.id, name: se.createdBy.name, email: se.createdBy.email, amount: 0 };
           current.amount -= p.amountOwed;
           balances.set(se.createdByUserId, current);
@@ -170,7 +168,6 @@ router.post('/settle-transaction', async (req, res) => {
       return res.status(400).json({ success: false, error: 'fromUserId and toUserId are required' });
     }
 
-    // Settle records where fromUserId is participant in toUserId's shared expense
     await prisma.participant.updateMany({
       where: {
         userId: fromUserId,
@@ -180,7 +177,6 @@ router.post('/settle-transaction', async (req, res) => {
       data: { settled: true }
     });
 
-    // And also where toUserId is participant in fromUserId's shared expense
     await prisma.participant.updateMany({
       where: {
         userId: toUserId,
@@ -200,7 +196,6 @@ router.patch('/:targetId/settle', async (req, res) => {
   try {
     const { targetId } = req.params;
 
-    // 1. Try finding by participant ID
     const participant = await prisma.participant.findUnique({
       where: { id: targetId },
       include: { sharedExpense: true }
@@ -218,7 +213,6 @@ router.patch('/:targetId/settle', async (req, res) => {
       return res.json({ success: true, data: updated });
     }
 
-    // 2. If not found by participantId, treat targetId as peer userId
     await prisma.participant.updateMany({
       where: {
         userId: targetId,

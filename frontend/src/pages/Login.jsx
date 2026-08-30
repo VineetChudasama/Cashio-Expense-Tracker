@@ -23,7 +23,6 @@ import ThemeToggle from '../components/ThemeToggle';
 
 const Login = () => {
   const { isDark, logoUrl } = useTheme();
-  // step 1: Login Form, step 2: Unverified Account OTP, step 3: Forgot Password Request, step 4: Forgot Password Reset
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +32,6 @@ const Login = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Forgot password specific states
   const [forgotEmail, setForgotEmail] = useState('');
   const [resetOtpCode, setResetOtpCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -42,13 +40,11 @@ const Login = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPasswordRules, setShowPasswordRules] = useState(false);
 
-  // Resend timer for OTP step
   const [resendTimer, setResendTimer] = useState(60);
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
 
-  // Instant email check states
-  const [emailStatus, setEmailStatus] = useState('idle'); // 'idle' | 'checking' | 'exists' | 'not_found'
+  const [emailStatus, setEmailStatus] = useState('idle');
   const [emailError, setEmailError] = useState('');
   const [recognizedName, setRecognizedName] = useState('');
 
@@ -129,7 +125,6 @@ const Login = () => {
     } catch (err) {
       const respData = err.response?.data;
       
-      // If unverified, switch to OTP verification step
       if (respData?.unverified || err.response?.status === 403) {
         setStep(2);
         setResendTimer(60);
@@ -218,7 +213,6 @@ const Login = () => {
     }
   };
 
-  // Step 3: Request Forgot Password OTP
   const handleRequestForgotPassword = async (e) => {
     e.preventDefault();
     setError('');
@@ -263,7 +257,6 @@ const Login = () => {
     }
   };
 
-  // Step 4: Submit New Password with OTP
   const handleResetPasswordSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -335,11 +328,9 @@ const Login = () => {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-[var(--bg-primary)] px-4 py-6 sm:py-10 overflow-hidden selection:bg-[#10B981]/30 selection:text-[#34D399]">
-      {/* Ambient background light orbs */}
       <div className="fixed top-[15%] left-[20%] w-[35vw] h-[35vw] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[15%] right-[20%] w-[35vw] h-[35vw] rounded-full bg-teal-500/10 blur-[130px] pointer-events-none"></div>
 
-      {/* Top Navigation & Theme Toggle Bar */}
       <div className="w-full max-w-md flex items-center justify-between mb-3 sm:mb-4 px-1 z-20">
         <Link 
           to="/" 
@@ -416,7 +407,6 @@ const Login = () => {
           )}
         </AnimatePresence>
 
-        {/* STEP 1: SIGN IN FORM */}
         {step === 1 && (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -540,7 +530,6 @@ const Login = () => {
           </form>
         )}
 
-        {/* STEP 2: REGISTRATION / UNVERIFIED OTP FORM */}
         {step === 2 && (
           <form onSubmit={handleVerifyOtp} className="space-y-5">
             <div className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/25 text-center">
@@ -609,7 +598,6 @@ const Login = () => {
           </form>
         )}
 
-        {/* STEP 3: FORGOT PASSWORD - REQUEST OTP */}
         {step === 3 && (
           <form onSubmit={handleRequestForgotPassword} className="space-y-5">
             <div className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/25 text-center">
@@ -664,7 +652,6 @@ const Login = () => {
           </form>
         )}
 
-        {/* STEP 4: FORGOT PASSWORD - ENTER OTP & NEW PASSWORD */}
         {step === 4 && (
           <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
             <div className="p-3.5 rounded-2xl bg-emerald-950/25 border border-emerald-500/25 text-center">
@@ -722,7 +709,6 @@ const Login = () => {
                 </button>
               </div>
 
-              {/* Strict Password Requirements checklist */}
               <PasswordRequirements 
                 password={newPassword} 
                 isVisible={showPasswordRules} 

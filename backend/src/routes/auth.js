@@ -37,7 +37,6 @@ router.post('/register', [
       if (existingUser.isVerified) {
         return res.status(400).json({ success: false, error: 'An account with this email already exists' });
       }
-      // Update unverified user credentials
       user = await prisma.user.update({
         where: { id: existingUser.id },
         data: { name, password: hashedPassword }

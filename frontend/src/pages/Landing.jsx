@@ -748,9 +748,7 @@ const Landing = () => {
                 Cashio empowers individuals and teams to master their financial flow with predictive forecasting, intelligent expense tracking, and zero-friction bill settlements.
               </p>
 
-              {/* Social / Community Icons */}
               <div className="flex items-center gap-3 pt-1">
-                {/* GitHub */}
                 <a 
                   href="https://github.com/VineetChudasama/Cashio-Expense-Tracker" 
                   target="_blank" 
@@ -769,9 +767,7 @@ const Landing = () => {
               </div>
             </div>
 
-            {/* Right Links (7 Cols) */}
             <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
-              {/* Product / Services Column */}
               <div className="space-y-3.5">
                 <h4 className={`text-xs font-bold uppercase tracking-wider ${
                   isDark ? 'text-white' : 'text-[#07241E] font-black'
@@ -810,7 +806,6 @@ const Landing = () => {
                 </ul>
               </div>
 
-              {/* Resources Column */}
               <div className="space-y-3.5">
                 <h4 className={`text-xs font-bold uppercase tracking-wider ${
                   isDark ? 'text-white' : 'text-[#07241E] font-black'
@@ -849,7 +844,6 @@ const Landing = () => {
                 </ul>
               </div>
 
-              {/* Platform Column */}
               <div className="space-y-3.5 col-span-2 sm:col-span-1">
                 <h4 className={`text-xs font-bold uppercase tracking-wider ${
                   isDark ? 'text-white' : 'text-[#07241E] font-black'
@@ -890,7 +884,6 @@ const Landing = () => {
             </div>
           </div>
 
-          {/* Bottom Divider & Legal Bar */}
           <div className={`pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium ${
             isDark ? 'border-white/[0.08]' : 'border-[#CDE9E3]'
           }`}>
