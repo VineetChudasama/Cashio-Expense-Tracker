@@ -680,36 +680,36 @@ const Profile = () => {
             </form>
           </div>
         </div>
+      </div>
 
-        {/* Danger Zone: Delete Account */}
-        <div className="glass-card p-4 sm:p-6 lg:p-7 border border-rose-500/20 bg-rose-950/10 rounded-3xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-400/30">
-                  <Trash2 size={18} />
-                </div>
-                <h2 className="text-lg font-bold text-white tracking-wide">Delete Account</h2>
+      {/* Danger Zone: Delete Account (Full Width Span) */}
+      <div className="glass-card p-5 sm:p-6 lg:p-7 border border-rose-500/20 bg-rose-950/10 rounded-3xl w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-400/30">
+                <Trash2 size={18} />
               </div>
-              <p className="text-xs text-rose-300/80 font-medium max-w-xl">
-                Permanently remove your Cashio account and all associated expenses, forecasts, debt settlements, and personal data. This action is permanent and cannot be undone.
-              </p>
+              <h2 className="text-lg font-bold text-white tracking-wide">Delete Account</h2>
             </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setDeletePassword('');
-                setDeleteConfirmText('');
-                setDeleteError('');
-                setShowDeleteModal(true);
-              }}
-              className="px-5 py-3 rounded-2xl font-bold text-xs bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 hover:border-rose-400 transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg shadow-rose-950/40 hover:scale-[1.02]"
-            >
-              <Trash2 size={15} />
-              <span>Delete Account</span>
-            </button>
+            <p className="text-xs text-rose-300/80 font-medium max-w-2xl">
+              Permanently remove your Cashio account and all associated expenses, forecasts, debt settlements, and personal data. This action is permanent and cannot be undone.
+            </p>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setDeletePassword('');
+              setDeleteConfirmText('');
+              setDeleteError('');
+              setShowDeleteModal(true);
+            }}
+            className="px-5 py-3 rounded-2xl font-bold text-xs bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 hover:border-rose-400 transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg shadow-rose-950/40 hover:scale-[1.02]"
+          >
+            <Trash2 size={15} />
+            <span>Delete Account</span>
+          </button>
         </div>
       </div>
 
