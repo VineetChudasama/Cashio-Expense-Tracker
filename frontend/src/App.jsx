@@ -30,6 +30,8 @@ const Forecast = React.lazy(() => import('./pages/Forecast'));
 const Splits = React.lazy(() => import('./pages/Splits'));
 const Insights = React.lazy(() => import('./pages/Insights'));
 const Profile = React.lazy(() => import('./pages/Profile'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
 
 function PageLoader() {
   return (
@@ -47,11 +49,15 @@ function App() {
           <ScrollToTop />
           <React.Suspense fallback={<PageLoader />}>
             <Routes>
-              {/* Public Default Landing Page */}
+              {/* Public Pages */}
               <Route path="/" element={<Landing />} />
               <Route path="/landing" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
               
               {/* Protected Workspace Routes */}
               <Route element={<ProtectedRoute />}>
