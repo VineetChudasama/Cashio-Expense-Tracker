@@ -19,7 +19,10 @@ function withTimeout(promise, ms = 4000) {
  */
 async function sendViaResend(toEmail, subject, html, text) {
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    console.warn('[RESEND] Skipping: RESEND_API_KEY environment variable is not set.');
+    return null;
+  }
 
   try {
     const fromAddress = process.env.EMAIL_FROM || 'Cashio Security <onboarding@resend.dev>';
@@ -43,11 +46,14 @@ async function sendViaResend(toEmail, subject, html, text) {
       console.log(`[RESEND] Email sent successfully to ${toEmail} (ID: ${data.id})`);
       return { success: true, messageId: data.id };
     } else {
-      console.warn('[RESEND] API Error:', data);
+      console.error(`[RESEND] Failed to send email to ${toEmail}:`, data);
+      if (data && data.message && data.message.includes('only send testing emails to your own email address')) {
+        console.error('[RESEND HINT] You are using the default test domain "onboarding@resend.dev". Resend only allows sending to the email address of your Resend account. To send to any recipient, add and verify your own domain at resend.com/domains.');
+      }
       return { success: false, error: data.message };
     }
   } catch (err) {
-    console.warn('[RESEND] Fetch Error:', err.message);
+    console.error('[RESEND] Network/Fetch Error:', err.message);
     return { success: false, error: err.message };
   }
 }
@@ -201,10 +207,11 @@ export async function sendOtpEmail(toEmail, code, type = 'REGISTER') {
       html
     });
 
-    const info = await withTimeout(sendPromise, 4000);
+    const info = await withTimeout(sendPromise, 8000);
+    console.log(`[MAILER] Email sent successfully to ${toEmail} (ID: ${info.messageId})`);
     return { success: true, messageId: info.messageId };
   } catch (err) {
-    console.warn(`[MAILER] Email delivery note for ${toEmail}:`, err.message);
+    console.error(`[MAILER] Email delivery failed for ${toEmail}:`, err.message);
     return { success: false, error: err.message };
   }
 }
