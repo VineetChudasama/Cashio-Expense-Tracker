@@ -123,6 +123,78 @@ router.post('/resend-register-otp', [
   }
 });
 
+router.post('/forgot-password', [
+  body('email').isEmail().withMessage('Please enter a valid email address')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const firstErr = errors.array()[0]?.msg || 'Valid email is required';
+    return res.status(400).json({ success: false, error: firstErr });
+  }
+
+  try {
+    const { email } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'No account found with this email address' });
+    }
+
+    await sendEmailOTP(normalizedEmail, 'CHANGE_PASSWORD');
+
+    res.json({
+      success: true,
+      message: `A 6-digit verification code has been sent to ${normalizedEmail}`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/reset-password', [
+  body('email').isEmail().withMessage('Please enter a valid email address'),
+  body('code').notEmpty().withMessage('Verification code is required'),
+  body('newPassword').notEmpty().withMessage('New password is required')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const firstErr = errors.array()[0]?.msg || 'All fields are required';
+    return res.status(400).json({ success: false, error: firstErr });
+  }
+
+  try {
+    const { email, code, newPassword } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const strengthCheck = validatePasswordStrength(newPassword);
+    if (!strengthCheck.isValid) {
+      return res.status(400).json({ success: false, error: strengthCheck.error });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const verification = await verifyEmailOTP(normalizedEmail, code, 'CHANGE_PASSWORD');
+    if (!verification.valid) {
+      return res.status(400).json({ success: false, error: verification.error });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword }
+    });
+
+    res.json({
+      success: true,
+      message: 'Password successfully reset! You can now log in with your new password.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 router.post('/login', [
   body('email').isEmail().withMessage('Please enter a valid email address'),
   body('password').exists().withMessage('Password is required')

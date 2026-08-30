@@ -47,33 +47,42 @@ const Layout = () => {
       <div className="fixed top-[40%] right-[25%] w-[30vw] h-[30vw] rounded-full bg-cyan-500/5 blur-[120px] pointer-events-none -z-10"></div>
 
       {/* Mobile top navigation bar */}
-      <header className={`md:hidden fixed top-0 left-0 right-0 h-16 backdrop-blur-2xl border-b flex items-center justify-between px-4 z-30 shadow-xl ${
+      <header className={`md:hidden fixed top-0 left-0 right-0 h-16 backdrop-blur-2xl border-b flex items-center justify-between px-3 sm:px-4 z-40 shadow-xl ${
         isDark ? 'bg-[#030F0D]/90 border-white/10' : 'bg-[#E2ECE6]/95 border-emerald-600/20'
       }`}>
-        <div className="flex items-center gap-2.5">
-          <img src={logoUrl} alt="Cashio Logo" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-          <span className="text-xl font-black tracking-tight text-[var(--text-primary)]">
+        <div className="flex items-center gap-2 shrink-0 min-w-0">
+          <img src={logoUrl} alt="Cashio Logo" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.4)] shrink-0" />
+          <span className="text-lg font-black tracking-tight text-[var(--text-primary)] truncate">
             Cash<span className="text-[#10B981] dark:text-emerald-400">io</span>
           </span>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Mobile Theme Toggle Button */}
-          <ThemeToggle />
+          <div className="shrink-0 scale-90 sm:scale-100 origin-right">
+            <ThemeToggle showLabel={false} />
+          </div>
 
           <NavLink
             to="/profile"
-            className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center font-black text-xs text-[var(--text-primary)]"
+            className={({ isActive }) =>
+              `w-8 h-8 rounded-xl border flex items-center justify-center font-black text-xs shrink-0 transition-all ${
+                isActive
+                  ? 'bg-emerald-500/30 border-emerald-400 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                  : 'bg-emerald-500/10 border-emerald-400/30 text-[var(--text-primary)] hover:bg-emerald-500/20'
+              }`
+            }
             title="Profile"
           >
             {user?.name?.charAt(0).toUpperCase() || <User size={14} />}
           </NavLink>
+
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-            className="p-2 rounded-xl glass-btn text-[var(--text-primary)]"
+            className="p-1.5 sm:p-2 rounded-xl glass-btn text-[var(--text-primary)] shrink-0"
             aria-label="Toggle menu"
           >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
       </header>

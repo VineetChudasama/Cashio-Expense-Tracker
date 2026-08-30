@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, Eye, EyeOff, MailCheck, ShieldCheck, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Sparkles, ArrowRight, ArrowLeft, Eye, EyeOff, MailCheck, ShieldCheck, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { auth as authApi } from '../lib/api';
@@ -154,15 +154,23 @@ const Register = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-[var(--bg-primary)] px-4 py-8 overflow-hidden selection:bg-[#10B981]/30 selection:text-[#34D399]">
-      {/* Top-Right Theme Switcher Button */}
-      <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-30">
-        <ThemeToggle />
-      </div>
-
+    <div className="relative min-h-screen flex flex-col items-center justify-center bg-[var(--bg-primary)] px-4 py-6 sm:py-10 overflow-hidden selection:bg-[#10B981]/30 selection:text-[#34D399]">
       {/* Ambient background light orbs */}
       <div className="fixed top-[15%] left-[20%] w-[35vw] h-[35vw] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[15%] right-[20%] w-[35vw] h-[35vw] rounded-full bg-teal-500/10 blur-[130px] pointer-events-none"></div>
+
+      {/* Top Navigation & Theme Toggle Bar */}
+      <div className="w-full max-w-md flex items-center justify-between mb-3 sm:mb-4 px-1 z-20">
+        <Link 
+          to="/" 
+          className="glass-card px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-emerald-400 border border-white/10 hover:border-emerald-500/30 transition-all flex items-center gap-1.5 shadow-lg backdrop-blur-md hover:scale-[1.02]"
+        >
+          <ArrowLeft size={14} />
+          <span>Home</span>
+        </Link>
+
+        <ThemeToggle showLabel={false} />
+      </div>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
