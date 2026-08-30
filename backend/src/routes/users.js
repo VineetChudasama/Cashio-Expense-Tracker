@@ -239,23 +239,68 @@ router.put('/change-email-with-otp', [
   }
 });
 
-// Search users
-router.get('/search', async (req, res) => {
+// Permanently delete user account and associated data
+router.delete('/account', async (req, res) => {
   try {
-    const { email } = req.query;
-    if (!email) return res.json({ success: true, data: [] });
+    const { password } = req.body || {};
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-    const users = await prisma.user.findMany({
-      where: {
-        email: { contains: email, mode: 'insensitive' },
-        id: { not: req.user.id }
-      },
-      select: { id: true, name: true, email: true },
-      take: 10
+    if (password) {
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ success: false, error: 'Incorrect password. Please try again.' });
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete participations where user is participant
+      await tx.participant.deleteMany({
+        where: { userId: req.user.id }
+      });
+
+      // 2. Find shared expenses created by this user and delete their participants
+      const userSharedExpenses = await tx.sharedExpense.findMany({
+        where: { createdByUserId: req.user.id },
+        select: { id: true }
+      });
+      const sharedExpenseIds = userSharedExpenses.map(s => s.id);
+      if (sharedExpenseIds.length > 0) {
+        await tx.participant.deleteMany({
+          where: { sharedExpenseId: { in: sharedExpenseIds } }
+        });
+        await tx.sharedExpense.deleteMany({
+          where: { id: { in: sharedExpenseIds } }
+        });
+      }
+
+      // 3. Delete recurring patterns
+      await tx.recurringPattern.deleteMany({
+        where: { userId: req.user.id }
+      });
+
+      // 4. Delete user's expenses
+      await tx.expense.deleteMany({
+        where: { userId: req.user.id }
+      });
+
+      // 5. Delete email verification OTPs
+      await tx.emailVerification.deleteMany({
+        where: { email: user.email }
+      });
+
+      // 6. Delete user record
+      await tx.user.delete({
+        where: { id: req.user.id }
+      });
     });
 
-    res.json({ success: true, data: users });
+    res.json({
+      success: true,
+      message: 'Account and all associated financial records have been permanently deleted.'
+    });
   } catch (err) {
+    console.error('[DELETE ACCOUNT ERROR]:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

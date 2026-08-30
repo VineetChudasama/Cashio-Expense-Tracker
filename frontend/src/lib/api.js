@@ -66,6 +66,7 @@ export const users = {
   sendEmailOtp: (data) => api.post('/users/send-email-otp', data).then(res => res.data),
   changeEmailWithOtp: (data) => api.put('/users/change-email-with-otp', data).then(res => res.data),
   search: (email) => api.get(`/users/search?email=${email}`).then(res => res.data),
+  deleteAccount: (data) => api.delete('/users/account', { data }).then(res => res.data),
 };
 
 export const insights = {

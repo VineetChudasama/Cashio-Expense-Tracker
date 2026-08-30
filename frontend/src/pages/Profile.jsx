@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, 
@@ -19,7 +20,9 @@ import {
   EyeOff,
   MailCheck,
   X,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { users as usersApi } from '../lib/api';
@@ -27,7 +30,8 @@ import { format } from 'date-fns';
 import PasswordRequirements, { checkPasswordCriteria } from '../components/PasswordRequirements';
 
 const Profile = () => {
-  const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
+  const { user, updateUser, logout } = useAuth();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,6 +66,13 @@ const Profile = () => {
   const [passwordOtpCode, setPasswordOtpCode] = useState('');
   const [isVerifyingPasswordOtp, setIsVerifyingPasswordOtp] = useState(false);
   const [passwordOtpError, setPasswordOtpError] = useState('');
+
+  // Delete Account State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const fetchProfile = async () => {
     try {
@@ -264,6 +275,30 @@ const Profile = () => {
       handleApiError(err, setPasswordOtpError);
     } finally {
       setIsVerifyingPasswordOtp(false);
+    }
+  };
+
+  const handleDeleteAccount = async (e) => {
+    e.preventDefault();
+    if (deleteConfirmText.trim().toUpperCase() !== 'DELETE') {
+      setDeleteError('Please type DELETE to confirm.');
+      return;
+    }
+    setDeleteError('');
+    setIsDeletingAccount(true);
+
+    try {
+      const res = await usersApi.deleteAccount({ password: deletePassword });
+      if (res.success) {
+        logout();
+        navigate('/');
+      } else {
+        setDeleteError(res.error || 'Failed to delete account.');
+      }
+    } catch (err) {
+      handleApiError(err, setDeleteError);
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -645,6 +680,37 @@ const Profile = () => {
             </form>
           </div>
         </div>
+
+        {/* Danger Zone: Delete Account */}
+        <div className="glass-card p-4 sm:p-6 lg:p-7 border border-rose-500/20 bg-rose-950/10 rounded-3xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-400/30">
+                  <Trash2 size={18} />
+                </div>
+                <h2 className="text-lg font-bold text-white tracking-wide">Delete Account</h2>
+              </div>
+              <p className="text-xs text-rose-300/80 font-medium max-w-xl">
+                Permanently remove your Cashio account and all associated expenses, forecasts, debt settlements, and personal data. This action is permanent and cannot be undone.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setDeletePassword('');
+                setDeleteConfirmText('');
+                setDeleteError('');
+                setShowDeleteModal(true);
+              }}
+              className="px-5 py-3 rounded-2xl font-bold text-xs bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 hover:border-rose-400 transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg shadow-rose-950/40 hover:scale-[1.02]"
+            >
+              <Trash2 size={15} />
+              <span>Delete Account</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* EMAIL CHANGE OTP MODAL */}
@@ -794,6 +860,111 @@ const Profile = () => {
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     <span>Verify & Save</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* DELETE ACCOUNT CONFIRMATION MODAL */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="glass-card w-full max-w-md p-7 border border-rose-500/30"
+          >
+            <div className="flex justify-between items-center mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-400/30">
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Permanently Delete Account</h3>
+                  <span className="text-[11px] text-rose-300/80 font-semibold">Irreversible Action</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white glass-btn"
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-rose-950/30 border border-rose-500/30 text-xs text-rose-200 space-y-1.5 mb-5">
+              <p className="font-bold flex items-center gap-1.5">
+                <AlertCircle size={14} className="text-rose-400" />
+                This will permanently erase:
+              </p>
+              <ul className="list-disc list-inside space-y-0.5 text-[11px] text-rose-300/90 pl-1">
+                <li>All logged expenses and transaction histories</li>
+                <li>Recurring pattern detections and forecasts</li>
+                <li>Group split participations and balances</li>
+                <li>Your profile credentials and verification records</li>
+              </ul>
+            </div>
+
+            {deleteError && (
+              <div className="bg-rose-950/60 border border-rose-500/40 text-rose-200 rounded-xl p-3 mb-4 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle size={15} className="text-rose-400 shrink-0" />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleDeleteAccount} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Confirm Account Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-rose-400"
+                  placeholder="Enter your current password"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Type <span className="text-rose-400 font-mono font-black">DELETE</span> to confirm
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  className="w-full glass-inset px-4 py-3 text-sm font-mono tracking-widest text-white focus:outline-none focus:ring-1 focus:ring-rose-400 uppercase"
+                  placeholder="DELETE"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 py-3 rounded-xl text-xs font-bold text-slate-300 hover:text-white glass-btn"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isDeletingAccount || deleteConfirmText.trim().toUpperCase() !== 'DELETE' || !deletePassword}
+                  className="flex-1 py-3 rounded-xl font-bold text-xs bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-rose-950/60 transition-all disabled:opacity-40"
+                >
+                  {isDeletingAccount ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <Trash2 size={15} />
+                      <span>Delete Forever</span>
+                    </>
                   )}
                 </button>
               </div>
