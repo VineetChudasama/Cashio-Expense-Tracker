@@ -737,11 +737,16 @@ const Profile = () => {
               </button>
             </div>
 
-            <p className="text-xs text-slate-300 mb-4">
-              To protect your account, we've sent a 6-digit authentication code to your registered email: <br />
-              <strong className="text-emerald-300">{profileData?.email}</strong> <br />
-              <span className="text-[11px] text-slate-400 mt-1 block">New email will be set to: <strong className="text-slate-200">{email}</strong></span>
-            </p>
+            <div className="text-xs text-slate-300 mb-4 space-y-2">
+              <p>
+                To protect your account, we've dispatched a 6-digit authentication code to your registered email: <br />
+                <strong className="text-emerald-300">{profileData?.email}</strong> <br />
+                <span className="text-[11px] text-slate-400 mt-1 block">New email will be set to: <strong className="text-slate-200">{email}</strong></span>
+              </p>
+              <p className="text-[11px] text-emerald-300/90 font-medium bg-emerald-500/10 py-1.5 px-2.5 rounded-lg border border-emerald-500/20 text-center">
+                💡 Please check your <strong>Spam / Junk</strong> folder if the mail isn't in your inbox.
+              </p>
+            </div>
 
             {emailOtpError && (
               <div className="bg-rose-950/40 border border-rose-500/30 text-rose-200 rounded-xl p-3 mb-4 text-xs font-semibold">
@@ -815,10 +820,15 @@ const Profile = () => {
               </button>
             </div>
 
-            <p className="text-xs text-slate-300 mb-4">
-              To protect your account, enter the 6-digit authentication code sent to your registered email: <br />
-              <strong className="text-emerald-300">{profileData?.email}</strong>
-            </p>
+            <div className="text-xs text-slate-300 mb-4 space-y-2">
+              <p>
+                To protect your account, enter the 6-digit authentication code sent to your registered email: <br />
+                <strong className="text-emerald-300">{profileData?.email}</strong>
+              </p>
+              <p className="text-[11px] text-emerald-300/90 font-medium bg-emerald-500/10 py-1.5 px-2.5 rounded-lg border border-emerald-500/20 text-center">
+                💡 Please check your <strong>Spam / Junk</strong> folder if the mail isn't in your inbox.
+              </p>
+            </div>
 
             {passwordOtpError && (
               <div className="bg-rose-950/40 border border-rose-500/30 text-rose-200 rounded-xl p-3 mb-4 text-xs font-semibold">

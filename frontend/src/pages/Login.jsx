@@ -669,10 +669,13 @@ const Login = () => {
           <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
             <div className="p-3.5 rounded-2xl bg-emerald-950/25 border border-emerald-500/25 text-center">
               <p className="text-xs text-slate-300">
-                Enter the 6-digit code sent to:
+                We've dispatched a 6-digit code to:
               </p>
               <p className="text-sm font-bold text-emerald-300 truncate">
                 {forgotEmail}
+              </p>
+              <p className="text-[11px] text-emerald-300/90 mt-2 font-medium bg-emerald-500/10 py-1.5 px-2.5 rounded-lg border border-emerald-500/20">
+                💡 Please check your <strong>Spam / Junk</strong> folder if the mail isn't in your inbox.
               </p>
             </div>
 
