@@ -44,6 +44,7 @@ export async function sendEmailOTP(email, type, extraData = {}) {
   console.log(`\n========================================`);
   console.log(`[EMAIL AUTH OTP - ${type}]`);
   console.log(`Recipient: ${normalizedEmail}`);
+  console.log(`Code: ${code}`);
   console.log(`Supabase Auth: ${isSupabaseConfigured() ? 'ACTIVE (Sending via Supabase Auth)' : 'INACTIVE'}`);
   console.log(`Resend / Mailer: ACTIVE`);
   console.log(`Expires in: 10 minutes`);

@@ -6,7 +6,7 @@ let etherealAttempted = false;
 /**
  * Helper with timeout to prevent hanging on network/SMTP connections
  */
-function withTimeout(promise, ms = 4000) {
+function withTimeout(promise, ms = 15000) {
   let timeoutId;
   const timeoutPromise = new Promise((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error('Email dispatch timed out')), ms);
@@ -20,7 +20,6 @@ function withTimeout(promise, ms = 4000) {
 async function sendViaResend(toEmail, subject, html, text) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    console.warn('[RESEND] Skipping: RESEND_API_KEY environment variable is not set.');
     return null;
   }
 
@@ -66,21 +65,29 @@ async function getTransporter() {
 
   const { EMAIL_SERVICE, EMAIL_USER, EMAIL_PASS, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
 
-  // 1. If standard Gmail or service is configured
-  if (EMAIL_SERVICE && EMAIL_USER && EMAIL_PASS) {
+  // 1. If standard Gmail is configured (Use direct SSL port 465 for reliable cloud delivery)
+  if (EMAIL_USER && EMAIL_PASS) {
     try {
+      const cleanUser = EMAIL_USER.trim();
+      const cleanPass = EMAIL_PASS.replace(/\s+/g, ''); // automatically strip any spaces from Google App Password
       transporter = nodemailer.createTransport({
-        service: EMAIL_SERVICE,
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
-          user: EMAIL_USER,
-          pass: EMAIL_PASS
+          user: cleanUser,
+          pass: cleanPass
         },
-        pool: true,
-        maxConnections: 3
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+        tls: {
+          rejectUnauthorized: false
+        }
       });
       return transporter;
     } catch (e) {
-      console.warn('[MAILER] Gmail transporter error:', e.message);
+      console.error('[MAILER] Gmail transporter initialization error:', e.message);
     }
   }
 
@@ -186,32 +193,58 @@ export async function sendOtpEmail(toEmail, code, type = 'REGISTER') {
 
   const text = `Your Cashio verification code is: ${code}. It expires in 10 minutes.`;
 
-  // 1. Try Resend if configured
+  // 1. If Gmail credentials are provided, use Gmail directly (sends to ANY email address without domain restriction)
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    try {
+      const mailTransporter = await getTransporter();
+      if (mailTransporter) {
+        const cleanUser = process.env.EMAIL_USER.trim();
+        const smtpFrom = `"Cashio Security" <${cleanUser}>`;
+        const sendPromise = mailTransporter.sendMail({
+          from: smtpFrom,
+          to: toEmail,
+          subject,
+          text,
+          html
+        });
+
+        const info = await withTimeout(sendPromise, 15000);
+        console.log(`[MAILER] Email successfully dispatched via Gmail to ${toEmail} (ID: ${info.messageId})`);
+        return { success: true, messageId: info.messageId };
+      }
+    } catch (err) {
+      console.error(`[MAILER] Gmail delivery attempt failed for ${toEmail}:`, err.message);
+    }
+  }
+
+  // 2. Try Resend if configured
   if (process.env.RESEND_API_KEY) {
     const resendResult = await sendViaResend(toEmail, subject, html, text);
     if (resendResult && resendResult.success) return resendResult;
   }
 
-  // 2. Try Nodemailer SMTP (Gmail / Custom SMTP / Ethereal)
+  // 3. Fallback: Other custom SMTP / Ethereal
   try {
     const mailTransporter = await getTransporter();
     if (!mailTransporter) {
+      console.error('[MAILER] No active email transporter configured. Make sure EMAIL_USER and EMAIL_PASS are set in environment variables.');
       return { success: false, reason: 'No active email transporter configured' };
     }
 
+    const smtpFrom = process.env.EMAIL_FROM || '"Cashio Security" <onboarding@resend.dev>';
     const sendPromise = mailTransporter.sendMail({
-      from: fromAddress,
+      from: smtpFrom,
       to: toEmail,
       subject,
       text,
       html
     });
 
-    const info = await withTimeout(sendPromise, 8000);
-    console.log(`[MAILER] Email sent successfully to ${toEmail} (ID: ${info.messageId})`);
+    const info = await withTimeout(sendPromise, 15000);
+    console.log(`[MAILER] Email successfully dispatched to ${toEmail} (ID: ${info.messageId})`);
     return { success: true, messageId: info.messageId };
   } catch (err) {
-    console.error(`[MAILER] Email delivery failed for ${toEmail}:`, err.message);
+    console.error(`[MAILER] SMTP fallback failed for ${toEmail}:`, err.message);
     return { success: false, error: err.message };
   }
 }
