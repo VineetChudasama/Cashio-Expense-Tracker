@@ -15,10 +15,51 @@ function withTimeout(promise, ms = 15000) {
 }
 
 /**
+ * Send email via Brevo (Sendinblue) HTTP REST API (Works 100% on Render without SMTP port blocking)
+ */
+async function sendViaBrevo(toEmail, subject, html, text) {
+  const apiKey = process.env.BREVO_API_KEY || process.env.brevo_api_key;
+  if (!apiKey) return null;
+
+  try {
+    const senderEmail = process.env.EMAIL_USER || process.env.email_user || 'cashio.tracker@gmail.com';
+    console.log(`[BREVO] Dispatching email to ${toEmail} via Brevo HTTP API from ${senderEmail}...`);
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': apiKey.trim(),
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: { name: 'Cashio Security', email: senderEmail.trim() },
+        to: [{ email: toEmail.trim() }],
+        subject,
+        htmlContent: html,
+        textContent: text
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      console.log(`[BREVO SUCCESS] Email delivered successfully to ${toEmail} (ID: ${data.messageId})`);
+      return { success: true, messageId: data.messageId };
+    } else {
+      console.error(`[BREVO ERROR] API returned error for ${toEmail}:`, data);
+      return { success: false, error: data.message || JSON.stringify(data) };
+    }
+  } catch (err) {
+    console.error(`[BREVO FETCH ERROR] Network request failed for ${toEmail}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Send email via Resend HTTP REST API if RESEND_API_KEY is configured
  */
 async function sendViaResend(toEmail, subject, html, text) {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.RESEND_API_KEY || process.env.resend_api_key;
   if (!apiKey) {
     return null;
   }
@@ -144,7 +185,8 @@ function getMailConfig() {
   const service = process.env.EMAIL_SERVICE || process.env.email_service || 'gmail';
   const from = process.env.EMAIL_FROM || process.env.email_from;
   const resendKey = process.env.RESEND_API_KEY || process.env.resend_api_key;
-  return { user, pass, service, from, resendKey };
+  const brevoKey = process.env.BREVO_API_KEY || process.env.brevo_api_key || process.env.SENDINBLUE_API_KEY;
+  return { user, pass, service, from, resendKey, brevoKey };
 }
 
 /**
@@ -161,7 +203,7 @@ export async function sendOtpEmail(toEmail, code, type = 'REGISTER') {
   const config = getMailConfig();
 
   console.log(`[MAILER DIAGNOSTIC] Initiating email delivery to ${toEmail}`);
-  console.log(`[MAILER DIAGNOSTIC] Config state -> Gmail User: ${Boolean(config.user)}, Gmail Pass: ${Boolean(config.pass)}, Resend Key: ${Boolean(config.resendKey)}`);
+  console.log(`[MAILER DIAGNOSTIC] Config state -> Brevo Key: ${Boolean(config.brevoKey)}, Gmail User: ${Boolean(config.user)}, Resend Key: ${Boolean(config.resendKey)}`);
 
   const html = `
     <!DOCTYPE html>
@@ -205,7 +247,13 @@ export async function sendOtpEmail(toEmail, code, type = 'REGISTER') {
 
   const text = `Your Cashio verification code is: ${code}. It expires in 10 minutes.`;
 
-  // 1. Primary: If Gmail credentials exist, send directly through Gmail SMTP (sends to ANY email)
+  // 1. Primary for Render: Brevo HTTP REST API (Bypasses Render SMTP port blocking, sends to ANY email)
+  if (config.brevoKey) {
+    const brevoResult = await sendViaBrevo(toEmail, subject, html, text);
+    if (brevoResult && brevoResult.success) return brevoResult;
+  }
+
+  // 2. Secondary: Gmail SMTP (if running locally or on hosting with open SMTP ports)
   if (config.user && config.pass) {
     try {
       const cleanUser = config.user.trim();
@@ -243,13 +291,13 @@ export async function sendOtpEmail(toEmail, code, type = 'REGISTER') {
     }
   }
 
-  // 2. Secondary: If Resend API Key is set
+  // 3. Tertiary: Resend API (Works over HTTP, sends to account owner email or verified domains)
   if (config.resendKey) {
     console.log(`[MAILER RESEND] Attempting dispatch via Resend API...`);
     const resendResult = await sendViaResend(toEmail, subject, html, text);
     if (resendResult && resendResult.success) return resendResult;
   }
 
-  console.warn(`[MAILER WARNING] No successful delivery method for ${toEmail}. Please check Gmail or Resend credentials.`);
+  console.warn(`[MAILER WARNING] No successful delivery method for ${toEmail}.`);
   return { success: false, error: 'All email delivery channels failed' };
 }
