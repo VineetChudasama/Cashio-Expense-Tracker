@@ -56,17 +56,12 @@ self.addEventListener('push', (event) => {
     body: notificationData.body,
     icon: notificationData.icon || '/logo.png',
     badge: notificationData.badge || '/logo.png',
-    tag: notificationData.tag || 'cashio-notification',
+    tag: notificationData.tag || `cashio-${Date.now()}`,
     data: notificationData.data || { url: '/dashboard' },
-    renotify: false,
-    vibrate: [100, 50, 100],
+    renotify: true,
+    vibrate: [150, 50, 150],
     requireInteraction: false,
-    actions: notificationData.actions && notificationData.actions.length > 0 
-      ? notificationData.actions 
-      : [
-          { action: 'open', title: 'Open Cashio' },
-          { action: 'dismiss', title: 'Dismiss' }
-        ]
+    silent: false
   };
 
   event.waitUntil(
