@@ -13,7 +13,8 @@ import {
   Receipt, 
   Layers, 
   MailCheck,
-  Globe
+  Globe,
+  BellRing
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -23,6 +24,7 @@ const superpowers = [
   { text: "Clarity & Confidence", gradientDark: "from-emerald-400 via-teal-300 to-cyan-300", gradientLight: "from-[#147D70] via-[#3BAE9F] to-[#147D70]" },
   { text: "Predictive Intelligence", gradientDark: "from-teal-300 via-cyan-300 to-emerald-400", gradientLight: "from-[#147D70] via-[#3BAE9F] to-[#0D5950]" },
   { text: "Simplified Peer Splits", gradientDark: "from-cyan-300 via-emerald-400 to-teal-300", gradientLight: "from-[#3BAE9F] via-[#147D70] to-[#3BAE9F]" },
+  { text: "Real-Time Spending Alerts", gradientDark: "from-emerald-400 via-teal-300 to-cyan-400", gradientLight: "from-[#147D70] via-[#3BAE9F] to-[#147D70]" },
   { text: "Bank-Grade Protection", gradientDark: "from-emerald-300 via-teal-400 to-cyan-400", gradientLight: "from-[#147D70] via-[#3BAE9F] to-[#147D70]" }
 ];
 
@@ -80,6 +82,12 @@ const Landing = () => {
       badge: "Peer Ledger"
     },
     {
+      icon: BellRing,
+      title: "Web Push & Real-Time Alerts",
+      description: "Receive instant phone and desktop push notifications for budget limits (80%/100%), group bill splits, and daily expense reminders even when Cashio is closed.",
+      badge: "Real-Time PWA"
+    },
+    {
       icon: Sparkles,
       title: "Actionable Financial Insights",
       description: "Automated anomaly detection identifies unusual spending spikes, category velocities, and actionable budget opportunities.",
@@ -87,15 +95,9 @@ const Landing = () => {
     },
     {
       icon: ShieldCheck,
-      title: "Dual-Layer OTP Authentication",
-      description: "Secure 6-digit email OTP verification via Supabase & Resend API for sign up, unverified login, email changes, and password resets.",
+      title: "Bank-Grade OTP & Security",
+      description: "Secure 6-digit email OTP verification via Supabase & Resend API with real-time password compliance and breached credential safeguards.",
       badge: "Security"
-    },
-    {
-      icon: Lock,
-      title: "Password Strength & Breached Check",
-      description: "Real-time 5-parameter password compliance meter with dictionary and breached credential list detection warnings.",
-      badge: "Protection"
     },
     {
       icon: Globe,
@@ -677,6 +679,10 @@ const Landing = () => {
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={16} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
                 <span className={isDark ? 'text-slate-300' : 'text-[#133E35]'}>Multi-Currency Support</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className={isDark ? 'text-emerald-400' : 'text-[#147D70]'} />
+                <span className={isDark ? 'text-slate-300' : 'text-[#133E35]'}>Background Push Notifications</span>
               </div>
             </div>
           </div>
