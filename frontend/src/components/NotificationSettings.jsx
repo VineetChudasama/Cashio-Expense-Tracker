@@ -20,6 +20,7 @@ import { useTheme } from '../context/ThemeContext';
 import { notifications as notificationsApi } from '../lib/api';
 import {
   isPushNotificationSupported,
+  isBraveBrowser,
   getNotificationPermission,
   getExistingPushSubscription,
   subscribeToPushNotifications,
@@ -30,6 +31,7 @@ const NotificationSettings = () => {
   const { isDark } = useTheme();
 
   const [supported, setSupported] = useState(true);
+  const [isBrave, setIsBrave] = useState(false);
   const [permission, setPermission] = useState('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,9 @@ const NotificationSettings = () => {
     async function init() {
       const isSupp = isPushNotificationSupported();
       setSupported(isSupp);
+
+      const braveDetected = await isBraveBrowser();
+      setIsBrave(braveDetected);
 
       if (!isSupp) {
         setLoading(false);
@@ -347,6 +352,27 @@ const NotificationSettings = () => {
                 </button>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Brave Browser Notice */}
+        {isBrave && !isSubscribed && (
+          <div className={`mt-4 p-3.5 sm:p-4 rounded-2xl border text-xs leading-relaxed space-y-2 ${
+            isDark
+              ? 'bg-amber-950/25 border-amber-500/30 text-amber-200'
+              : 'bg-amber-50/90 border-amber-300/80 text-amber-950 shadow-xs'
+          }`}>
+            <p className="font-bold flex items-center gap-1.5 text-xs">
+              <span>🦁 Brave Browser Push Setup:</span>
+            </p>
+            <p className="text-[11px] opacity-90">
+              Brave disables Google push messaging services by default to maximize privacy. To enable push alerts in Brave:
+            </p>
+            <ol className="list-decimal list-inside text-[11px] space-y-1 font-medium opacity-90">
+              <li>Open a new tab and paste: <code className="px-1.5 py-0.5 rounded bg-black/20 font-mono font-bold">brave://settings/privacy</code></li>
+              <li>Turn <strong>ON</strong> the toggle for <strong>"Use Google services for push messaging"</strong>.</li>
+              <li>Relaunch Brave, return here, and tap <strong>Enable Notifications</strong>.</li>
+            </ol>
           </div>
         )}
       </div>

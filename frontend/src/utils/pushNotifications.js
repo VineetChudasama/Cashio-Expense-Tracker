@@ -31,6 +31,16 @@ export function isPushNotificationSupported() {
 }
 
 /**
+ * Checks whether current browser is Brave
+ */
+export async function isBraveBrowser() {
+  if (typeof navigator !== 'undefined' && navigator.brave && typeof navigator.brave.isBrave === 'function') {
+    return await navigator.brave.isBrave();
+  }
+  return false;
+}
+
+/**
  * Gets the current notification permission state
  * @returns {'granted' | 'denied' | 'default' | 'unsupported'}
  */
