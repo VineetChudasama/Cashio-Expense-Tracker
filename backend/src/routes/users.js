@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.js';
 import { sendEmailOTP, verifyEmailOTP } from '../utils/otp.js';
 import { validatePasswordStrength } from '../utils/passwordValidator.js';
+import { createNotification } from '../utils/notifications.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -46,6 +47,47 @@ router.get('/profile', async (req, res) => {
       }
     });
   } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.get('/search', async (req, res) => {
+  try {
+    const query = (req.query.email || req.query.query || req.query.q || '').trim();
+    if (!query || query.length < 2) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const matchedUsers = await prisma.user.findMany({
+      where: {
+        OR: [
+          { email: { contains: query, mode: 'insensitive' } },
+          { name: { contains: query, mode: 'insensitive' } }
+        ]
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isVerified: true
+      },
+      take: 10
+    });
+
+    const results = matchedUsers.map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      isVerified: u.isVerified,
+      isSelf: u.id === req.user.id
+    }));
+
+    res.json({
+      success: true,
+      data: results
+    });
+  } catch (err) {
+    console.error('[USER SEARCH ERROR]:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -147,6 +189,14 @@ router.put('/change-password-with-otp', [
       data: { password: hashedPassword }
     });
 
+    createNotification({
+      userId: req.user.id,
+      type: 'SECURITY',
+      title: 'Security Alert: Password Changed',
+      message: 'Your account password was successfully updated. If you did not perform this change, please contact support immediately.',
+      link: '/profile'
+    });
+
     res.json({ success: true, message: 'Password updated successfully!' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -217,6 +267,14 @@ router.put('/change-email-with-otp', [
         isVerified: true,
         createdAt: true
       }
+    });
+
+    createNotification({
+      userId: req.user.id,
+      type: 'SECURITY',
+      title: 'Security Alert: Email Updated',
+      message: `Your account email address was successfully updated to ${normalizedNewEmail}.`,
+      link: '/profile'
     });
 
     res.json({

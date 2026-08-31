@@ -98,7 +98,7 @@ const Forecast = () => {
             <TrendingUp className="text-emerald-400" />
             Cash Flow Forecast
           </h1>
-          <p className="text-sm font-medium text-emerald-300/80 mt-0.5">AI-powered forward projections based on your spending history</p>
+          <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300/80 mt-0.5">AI-powered forward projections based on your spending history</p>
         </div>
       </div>
 
@@ -107,7 +107,7 @@ const Forecast = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
           <div>
             <h2 className="text-lg font-bold text-white tracking-wide">30-Day Projection</h2>
-            <p className="text-xs text-emerald-300/70 font-medium">Actual vs projected daily cash outflow</p>
+            <p className="text-xs text-emerald-800 dark:text-emerald-300/70 font-medium">Actual vs projected daily cash outflow</p>
           </div>
           <div className="flex items-center gap-4 text-xs font-bold">
             <div className="flex items-center gap-2 text-emerald-300">
@@ -128,7 +128,7 @@ const Forecast = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <h2 className="text-lg font-bold text-white tracking-wide">Detected Recurring Patterns</h2>
-            <p className="text-xs text-emerald-300/70 font-medium">Machine learning cadence detection for regular bills</p>
+            <p className="text-xs text-emerald-800 dark:text-emerald-300/70 font-medium">Machine learning cadence detection for regular bills</p>
           </div>
           <button 
             onClick={handleDetectPatterns}

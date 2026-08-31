@@ -130,7 +130,7 @@ const Expenses = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Expenses</h1>
-          <p className="text-xs sm:text-sm font-medium text-emerald-300/80 mt-0.5">
+          <p className="text-xs sm:text-sm font-medium text-emerald-800 dark:text-emerald-300/80 mt-0.5">
             Manage, filter, and track all your cash outflow
           </p>
         </div>

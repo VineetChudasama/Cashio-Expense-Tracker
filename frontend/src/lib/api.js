@@ -65,8 +65,16 @@ export const users = {
   changePasswordWithOtp: (data) => api.put('/users/change-password-with-otp', data).then(res => res.data),
   sendEmailOtp: (data) => api.post('/users/send-email-otp', data).then(res => res.data),
   changeEmailWithOtp: (data) => api.put('/users/change-email-with-otp', data).then(res => res.data),
-  search: (email) => api.get(`/users/search?email=${email}`).then(res => res.data),
+  search: (email) => api.get(`/users/search?email=${encodeURIComponent(email)}`).then(res => res.data),
   deleteAccount: (data) => api.delete('/users/account', { data }).then(res => res.data),
+};
+
+export const notifications = {
+  getAll: (params) => api.get('/notifications', { params }).then(res => res.data),
+  markAsRead: (id) => api.patch(`/notifications/${id}/read`).then(res => res.data),
+  markAllAsRead: () => api.patch('/notifications/read-all').then(res => res.data),
+  delete: (id) => api.delete(`/notifications/${id}`).then(res => res.data),
+  clearAll: () => api.delete('/notifications/clear-all').then(res => res.data),
 };
 
 export const insights = {

@@ -115,16 +115,18 @@ const Landing = () => {
     <div className={`min-h-screen relative overflow-x-hidden selection:bg-[#10B981]/30 selection:text-[#34D399] transition-colors duration-300 ${
       isDark ? 'bg-[#030F0D] text-[#F8FAFC]' : 'bg-[#F4FAF8] text-[#07241E]'
     }`}>
-      {/* Ambient Glassmorphic Background Orbs */}
-      <div className={`fixed top-[-15%] left-[10%] w-[50vw] h-[50vw] rounded-full blur-[140px] pointer-events-none -z-10 animate-pulse duration-1000 ${
-        isDark ? 'bg-emerald-500/10' : 'bg-[#3BAE9F]/15'
-      }`}></div>
-      <div className={`fixed bottom-[-15%] right-[5%] w-[45vw] h-[45vw] rounded-full blur-[150px] pointer-events-none -z-10 ${
-        isDark ? 'bg-teal-600/10' : 'bg-[#147D70]/10'
-      }`}></div>
-      <div className={`fixed top-[45%] right-[20%] w-[35vw] h-[35vw] rounded-full blur-[130px] pointer-events-none -z-10 ${
-        isDark ? 'bg-cyan-500/5' : 'bg-[#3BAE9F]/10'
-      }`}></div>
+      {/* Precision Dot Matrix Grid Overlay (z-0) */}
+      <div 
+        className="pointer-events-none fixed inset-0 z-0 opacity-60 transition-opacity duration-300"
+        style={{
+          backgroundImage: isDark
+            ? 'radial-gradient(rgba(255, 255, 255, 0.18) 1.2px, transparent 1.2px)'
+            : 'radial-gradient(rgba(20, 125, 112, 0.25) 1.2px, transparent 1.2px)',
+          backgroundSize: '28px 28px',
+          maskImage: 'radial-gradient(ellipse 90% 80% at 50% 30%, black 40%, transparent 90%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 90% 80% at 50% 30%, black 40%, transparent 90%)'
+        }}
+      />
 
       {/* Navigation Header */}
       <header className={`sticky top-0 z-40 w-full backdrop-blur-2xl border-b transition-colors duration-300 ${

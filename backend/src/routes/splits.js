@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.js';
 import { simplifyDebts } from '../utils/debtSimplify.js';
+import { createNotification } from '../utils/notifications.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -23,6 +24,17 @@ router.post('/', [
     });
     if (!expense) return res.status(404).json({ success: false, error: 'Expense not found or unauthorized' });
 
+    // Check if this expense has already been split
+    const existingSplit = await prisma.sharedExpense.findUnique({
+      where: { expenseId }
+    });
+    if (existingSplit) {
+      return res.status(400).json({
+        success: false,
+        error: 'This transaction has already been split. You can edit the existing split in the Splits tab or choose an unsplit transaction.'
+      });
+    }
+
     const sharedExpense = await prisma.sharedExpense.create({
       data: {
         expenseId,
@@ -38,8 +50,33 @@ router.post('/', [
       include: { participants: true }
     });
     
+    // Trigger split notification for each participant
+    const creator = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { name: true }
+    });
+
+    for (const p of participants) {
+      if (p.userId !== req.user.id) {
+        createNotification({
+          userId: p.userId,
+          type: 'SPLIT_CREATED',
+          title: 'New Expense Split',
+          message: `${creator?.name || 'A user'} split a $${expense.amount.toFixed(2)} bill (${expense.description || expense.category}) with you. Your share is $${parseFloat(p.amountOwed).toFixed(2)}.`,
+          link: '/splits'
+        });
+      }
+    }
+
     res.json({ success: true, data: sharedExpense });
   } catch (err) {
+    console.error('[CREATE SPLIT ERROR]:', err);
+    if (err.code === 'P2002' || (err.message && err.message.includes('Unique constraint failed'))) {
+      return res.status(400).json({
+        success: false,
+        error: 'This transaction has already been split. You can edit the existing split in the Splits tab or choose an unsplit transaction.'
+      });
+    }
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -186,6 +223,17 @@ router.post('/settle-transaction', async (req, res) => {
       data: { settled: true }
     });
 
+    // Notify the other peer
+    const currentUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { name: true } });
+    const targetUserId = req.user.id === fromUserId ? toUserId : fromUserId;
+    createNotification({
+      userId: targetUserId,
+      type: 'SPLIT_SETTLED',
+      title: 'Peer Debt Settled',
+      message: `${currentUser?.name || 'A user'} marked all pending split balances as settled with you.`,
+      link: '/splits'
+    });
+
     res.json({ success: true, message: 'Settlement completed successfully' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -198,7 +246,7 @@ router.patch('/:targetId/settle', async (req, res) => {
 
     const participant = await prisma.participant.findUnique({
       where: { id: targetId },
-      include: { sharedExpense: true }
+      include: { sharedExpense: { include: { expense: true } }, user: true }
     });
     
     if (participant) {
@@ -210,6 +258,21 @@ router.patch('/:targetId/settle', async (req, res) => {
         where: { id: targetId },
         data: { settled: true }
       });
+
+      // Notify the other party
+      const currentUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { name: true } });
+      const notifyUserId = req.user.id === participant.userId
+        ? participant.sharedExpense.createdByUserId
+        : participant.userId;
+
+      createNotification({
+        userId: notifyUserId,
+        type: 'SPLIT_SETTLED',
+        title: 'Split Share Settled',
+        message: `${currentUser?.name || 'A user'} settled a share of $${participant.amountOwed.toFixed(2)} for ${participant.sharedExpense.expense.description || participant.sharedExpense.expense.category}.`,
+        link: '/splits'
+      });
+
       return res.json({ success: true, data: updated });
     }
 
@@ -229,6 +292,15 @@ router.patch('/:targetId/settle', async (req, res) => {
         sharedExpense: { createdByUserId: targetId }
       },
       data: { settled: true }
+    });
+
+    const currentUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { name: true } });
+    createNotification({
+      userId: targetId,
+      type: 'SPLIT_SETTLED',
+      title: 'Peer Balance Settled',
+      message: `${currentUser?.name || 'A user'} marked all balances between you as settled.`,
+      link: '/splits'
     });
     
     res.json({ success: true, message: 'Peer settlement completed' });

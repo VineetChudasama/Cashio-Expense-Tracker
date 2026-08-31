@@ -7,6 +7,7 @@ import forecastRoutes from './routes/forecast.js';
 import splitRoutes from './routes/splits.js';
 import insightRoutes from './routes/insights.js';
 import userRoutes from './routes/users.js';
+import notificationRoutes from './routes/notifications.js';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use('/api/forecast', forecastRoutes);
 app.use('/api/splits', splitRoutes);
 app.use('/api/insights', insightRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

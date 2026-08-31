@@ -153,8 +153,18 @@ const Register = () => {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-[var(--bg-primary)] px-4 py-6 sm:py-10 overflow-hidden selection:bg-[#10B981]/30 selection:text-[#34D399]">
-      <div className="fixed top-[15%] left-[20%] w-[35vw] h-[35vw] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none"></div>
-      <div className="fixed bottom-[15%] right-[20%] w-[35vw] h-[35vw] rounded-full bg-teal-500/10 blur-[130px] pointer-events-none"></div>
+      {/* Precision Dot Matrix Grid */}
+      <div 
+        className="pointer-events-none fixed inset-0 z-0 opacity-45 transition-opacity duration-300"
+        style={{
+          backgroundImage: isDark
+            ? 'radial-gradient(rgba(255, 255, 255, 0.14) 1.2px, transparent 1.2px)'
+            : 'radial-gradient(rgba(20, 125, 112, 0.20) 1.2px, transparent 1.2px)',
+          backgroundSize: '28px 28px',
+          maskImage: 'radial-gradient(ellipse 80% 70% at 50% 45%, black 35%, transparent 85%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 45%, black 35%, transparent 85%)'
+        }}
+      />
 
       <div className="w-full max-w-md flex items-center justify-between mb-3 sm:mb-4 px-1 z-20">
         <Link 

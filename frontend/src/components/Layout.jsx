@@ -5,6 +5,7 @@ import { LayoutDashboard, Receipt, TrendingUp, Users, Lightbulb, LogOut, Menu, X
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from './ThemeToggle';
+import NotificationBell from './NotificationBell';
 
 const Layout = () => {
   const { user, logout } = useAuth();
@@ -39,9 +40,18 @@ const Layout = () => {
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] selection:bg-[#10B981]/30 selection:text-[#34D399]">
-      <div className="fixed top-[-10%] left-[15%] w-[45vw] h-[45vw] rounded-full bg-emerald-500/10 blur-[130px] pointer-events-none -z-10 animate-pulse duration-1000"></div>
-      <div className="fixed bottom-[-10%] right-[10%] w-[40vw] h-[40vw] rounded-full bg-teal-600/10 blur-[140px] pointer-events-none -z-10"></div>
-      <div className="fixed top-[40%] right-[25%] w-[30vw] h-[30vw] rounded-full bg-cyan-500/5 blur-[120px] pointer-events-none -z-10"></div>
+      {/* Modern Technical Dot Matrix Grid */}
+      <div 
+        className="pointer-events-none fixed inset-0 z-0 opacity-45 transition-opacity duration-300"
+        style={{
+          backgroundImage: isDark
+            ? 'radial-gradient(rgba(255, 255, 255, 0.14) 1.2px, transparent 1.2px)'
+            : 'radial-gradient(rgba(20, 125, 112, 0.20) 1.2px, transparent 1.2px)',
+          backgroundSize: '28px 28px',
+          maskImage: 'radial-gradient(ellipse 85% 75% at 50% 40%, black 40%, transparent 90%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 85% 75% at 50% 40%, black 40%, transparent 90%)'
+        }}
+      />
 
       {/* Mobile top navigation bar */}
       <header className={`md:hidden fixed top-0 left-0 right-0 h-16 backdrop-blur-2xl border-b flex items-center justify-between px-3 sm:px-4 z-40 shadow-xl ${
@@ -54,7 +64,10 @@ const Layout = () => {
           </span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Mobile Notification Bell */}
+          <NotificationBell />
+
           {/* Mobile Theme Toggle Button */}
           <div className="shrink-0 scale-90 sm:scale-100 origin-right">
             <ThemeToggle showLabel={false} />
@@ -208,7 +221,9 @@ const Layout = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3.5">
+            <NotificationBell />
+            <div className="h-5 w-[1px] bg-white/10"></div>
             <ThemeToggle showLabel={true} />
             <div className="h-5 w-[1px] bg-white/10"></div>
             <NavLink

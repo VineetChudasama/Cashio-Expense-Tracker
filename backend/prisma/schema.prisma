@@ -21,6 +21,23 @@ model User {
   sharedExpenses    SharedExpense[]
   participations    Participant[]
   recurringPatterns RecurringPattern[]
+  notifications     Notification[]
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // SPLIT_CREATED, SPLIT_SETTLED, EXPENSE_ALERT, SECURITY, SYSTEM
+  title     String
+  message   String
+  link      String?  // e.g. /splits, /expenses, /profile
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
 }
 
 model EmailVerification {

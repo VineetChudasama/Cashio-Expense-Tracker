@@ -53,7 +53,7 @@ const Insights = () => {
             <Lightbulb className="text-emerald-400" />
             Spending Insights
           </h1>
-          <p className="text-sm font-medium text-emerald-300/80 mt-0.5">Automated AI intelligence to optimize your budget</p>
+          <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300/80 mt-0.5">Automated AI intelligence to optimize your budget</p>
         </div>
       </div>
 

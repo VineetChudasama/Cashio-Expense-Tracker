@@ -18,20 +18,20 @@
   --border-highlight: rgba(167, 243, 208, 0.3);
 }
 
-/* Light Mode (User Specified Palette: #F4FAF8, #E8F4F1, #CDE9E3, #147D70, #3BAE9F) */
+/* Light Mode (Sophisticated Pearl Mint & Forest Emerald Palette) */
 [data-theme="light"], .light {
-  --bg-primary: #F4FAF8;
-  --bg-card: #E8F4F1;
-  --bg-elevated: #FFFFFF;
-  --bg-inset: #E8F4F1;
-  --text-primary: #07241E;
-  --text-secondary: #133E35;
-  --text-muted: #147D70;
-  --accent: #147D70;
-  --accent-hover: #3BAE9F;
-  --accent-glow: rgba(20, 125, 112, 0.25);
-  --border: #CDE9E3;
-  --border-highlight: #3BAE9F;
+  --bg-primary: #EEF6F3;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #F8FCFA;
+  --bg-inset: #E1EFEA;
+  --text-primary: #062821;
+  --text-secondary: #134B41;
+  --text-muted: #116B5F;
+  --accent: #0D7A6D;
+  --accent-hover: #14B8A6;
+  --accent-glow: rgba(13, 122, 109, 0.2);
+  --border: #C8E3DC;
+  --border-highlight: #14B8A6;
 }
 
 /* Custom Brand Font: Array BoldWide */
@@ -70,22 +70,59 @@ body {
   font-family: 'Marcellus', serif, system-ui, -apple-system, sans-serif;
   letter-spacing: 0.015em;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.07) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(5, 150, 105, 0.05) 0px, transparent 60%),
-    radial-gradient(at 100% 100%, rgba(13, 148, 136, 0.08) 0px, transparent 50%);
+    radial-gradient(at 10% 10%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
+    radial-gradient(at 90% 15%, rgba(99, 102, 241, 0.10) 0px, transparent 50%),
+    radial-gradient(at 50% 60%, rgba(6, 182, 212, 0.08) 0px, transparent 55%),
+    radial-gradient(at 90% 90%, rgba(16, 185, 129, 0.10) 0px, transparent 50%);
   background-attachment: fixed;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .light body {
-  background-color: #F4FAF8;
-  color: #07241E;
+  background-color: #EEF6F3;
+  color: #062821;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(59, 174, 159, 0.12) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(20, 125, 112, 0.08) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(232, 244, 241, 0.6) 0px, transparent 60%),
-    radial-gradient(at 100% 100%, rgba(59, 174, 159, 0.08) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(20, 184, 166, 0.10) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(13, 122, 109, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 60%, rgba(225, 239, 234, 0.7) 0px, transparent 65%),
+    radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.06) 0px, transparent 50%);
+}
+
+/* Ambient Flow & Precision Matrix Background Utilities */
+.flow-ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(circle 550px at 15% 15%, rgba(16, 185, 129, 0.16), transparent 70%),
+    radial-gradient(circle 600px at 85% 20%, rgba(99, 102, 241, 0.14), transparent 70%),
+    radial-gradient(circle 650px at 50% 90%, rgba(6, 182, 212, 0.10), transparent 70%);
+  background-attachment: fixed;
+}
+
+.light .flow-ambient-bg {
+  background-image: 
+    radial-gradient(circle 550px at 15% 15%, rgba(59, 174, 159, 0.16), transparent 70%),
+    radial-gradient(circle 600px at 85% 20%, rgba(20, 125, 112, 0.12), transparent 70%),
+    radial-gradient(circle 650px at 50% 90%, rgba(59, 174, 159, 0.12), transparent 70%);
+}
+
+.flow-grid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.10) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 35%, #000 35%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 35%, #000 35%, transparent 85%);
+  opacity: 0.4;
+}
+
+.light .flow-grid-overlay {
+  background-image: radial-gradient(rgba(20, 125, 112, 0.15) 1px, transparent 1px);
+  opacity: 0.5;
 }
 
 h1, h2, h3, h4, h5, h6, button, input, select, textarea {
@@ -141,13 +178,13 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-card, .light .clay {
-  background: linear-gradient(135deg, #FFFFFF 0%, #E8F4F1 100%);
-  border: 1px solid #CDE9E3;
-  border-top: 1px solid #FFFFFF;
+  background: linear-gradient(145deg, #FFFFFF 0%, #F6FAF8 50%, #ECF6F3 100%);
+  border: 1px solid #C8E3DC;
+  border-top: 1.5px solid #FFFFFF;
   box-shadow: 
-    0 14px 32px -12px rgba(20, 125, 112, 0.12),
-    0 4px 12px rgba(0, 0, 0, 0.03),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
+    0 16px 36px -12px rgba(13, 122, 109, 0.12),
+    0 4px 14px -2px rgba(6, 40, 33, 0.04),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.95);
 }
 
 /* Elevated Glass Surface */
@@ -165,11 +202,12 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-elevated, .light .clay-elevated {
-  background: linear-gradient(135deg, #FFFFFF 0%, #E8F4F1 100%);
-  border: 1px solid #CDE9E3;
-  border-top: 1px solid #FFFFFF;
+  background: linear-gradient(145deg, #FFFFFF 0%, #F8FCFB 60%, #EEF7F4 100%);
+  border: 1px solid #CEE8E1;
+  border-top: 1.5px solid #FFFFFF;
   box-shadow: 
-    0 6px 18px -4px rgba(20, 125, 112, 0.1),
+    0 8px 22px -6px rgba(13, 122, 109, 0.09),
+    0 2px 8px rgba(6, 40, 33, 0.03),
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
 }
 
@@ -188,13 +226,13 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-inset, .light .clay-inset {
-  background: #E8F4F1;
-  color: #07241E;
-  border: 1px solid #CDE9E3;
-  border-bottom: 1px solid #3BAE9F;
+  background: #E4F1EC;
+  color: #062821;
+  border: 1px solid #C5E1D9;
+  border-bottom: 1.5px solid #14B8A6;
   box-shadow: 
-    inset 0 2px 4px rgba(20, 125, 112, 0.06),
-    0 1px 0 rgba(255, 255, 255, 0.9);
+    inset 0 2px 4px rgba(6, 40, 33, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .glass-inset:focus-within, .clay-inset:focus-within {
@@ -205,10 +243,10 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-inset:focus-within, .light .clay-inset:focus-within {
-  border-color: #147D70;
+  border-color: #0D7A6D;
   box-shadow: 
-    inset 0 1px 3px rgba(20, 125, 112, 0.1),
-    0 0 14px rgba(59, 174, 159, 0.35);
+    inset 0 1px 3px rgba(13, 122, 109, 0.1),
+    0 0 14px rgba(20, 184, 166, 0.35);
 }
 
 /* Glass Buttons */
@@ -349,9 +387,9 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-sidebar, .light .clay-sidebar {
-  background: linear-gradient(180deg, #E8F4F1 0%, #F4FAF8 100%);
-  border-right: 1.5px solid #CDE9E3;
-  box-shadow: 4px 0 25px rgba(20, 125, 112, 0.08);
+  background: linear-gradient(180deg, #F6FAF8 0%, #ECF6F3 100%);
+  border-right: 1.5px solid #C8E3DC;
+  box-shadow: 4px 0 25px rgba(13, 122, 109, 0.07);
 }
 
 /* Glass Pill Badge */
@@ -372,47 +410,45 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 }
 
 .light .glass-overlay, .light .clay-overlay {
-  background: rgba(7, 36, 30, 0.55);
+  background: rgba(6, 40, 33, 0.45);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
-/* Light Theme Text & Component Adjustments */
+/* Light Theme Typography & High-Contrast Accents */
 .light .text-white {
-  color: #07241E !important;
+  color: #062821 !important;
 }
 
 .light .text-slate-300 {
-  color: #133E35 !important;
+  color: #134B41 !important;
 }
 
 .light .text-slate-400 {
-  color: #147D70 !important;
+  color: #116B5F !important;
 }
 
 .light .text-slate-200 {
-  color: #07241E !important;
+  color: #062821 !important;
 }
 
 .light .border-white\/10, 
 .light .border-white\/15, 
 .light .border-white\/20,
-.light .border-white\/5 {
-  border-color: #CDE9E3 !important;
-}
-
+.light .border-white\/5,
 .light .border-white\/\[0\.06\],
 .light .border-white\/\[0\.08\] {
-  border-color: #CDE9E3 !important;
+  border-color: #C8E3DC !important;
 }
 
 .light .bg-\[\#031512\],
 .light .bg-\[\#030F0D\],
 .light .bg-\[\#02120F\],
 .light .bg-\[\#021814\]\/90 {
-  background-color: #E8F4F1 !important;
+  background-color: #EAF4F0 !important;
 }
 
+/* Soft Colored Badge & Chip Tints */
 .light .bg-emerald-950\/25,
 .light .bg-emerald-950\/30,
 .light .bg-emerald-950\/40,
@@ -420,11 +456,17 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 .light .bg-emerald-950\/60,
 .light .bg-emerald-950\/70,
 .light .bg-emerald-950\/80 {
-  background-color: #E8F4F1 !important;
+  background-color: rgba(16, 185, 129, 0.12) !important;
+}
+
+.light .bg-rose-950\/25,
+.light .bg-rose-950\/30,
+.light .bg-rose-950\/40 {
+  background-color: rgba(244, 63, 94, 0.10) !important;
 }
 
 .light .bg-black\/40 {
-  background-color: #E8F4F1 !important;
+  background-color: #EAF4F0 !important;
 }
 
 .light .border-emerald-500\/20,
@@ -432,20 +474,52 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 .light .border-emerald-500\/30,
 .light .border-emerald-400\/30,
 .light .border-emerald-400\/35 {
-  border-color: #CDE9E3 !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
 }
 
+/* Distinct Vibrant Accent Text (High Contrast & Legible in Light Mode) */
 .light .text-emerald-300,
-.light .text-emerald-400 {
-  color: #147D70 !important;
+.light .text-emerald-400,
+.light [class*="text-emerald-300"],
+.light [class*="text-emerald-400"],
+.light .text-emerald-300\/70,
+.light .text-emerald-300\/80,
+.light .text-emerald-300\/90 {
+  color: #0D685A !important;
+  opacity: 1 !important;
 }
 
 .light .text-teal-300,
-.light .text-teal-400 {
-  color: #147D70 !important;
+.light .text-teal-400,
+.light [class*="text-teal-300"],
+.light [class*="text-teal-400"],
+.light .text-teal-300\/70,
+.light .text-teal-300\/80,
+.light .text-teal-300\/90 {
+  color: #0F766E !important;
+  opacity: 1 !important;
 }
 
 .light .text-cyan-300,
-.light .text-cyan-400 {
-  color: #147D70 !important;
+.light .text-cyan-400,
+.light [class*="text-cyan-300"],
+.light [class*="text-cyan-400"] {
+  color: #0369A1 !important;
+  opacity: 1 !important;
+}
+
+.light .text-indigo-300,
+.light .text-indigo-400,
+.light [class*="text-indigo-300"],
+.light [class*="text-indigo-400"] {
+  color: #4338CA !important;
+  opacity: 1 !important;
+}
+
+.light .text-rose-300,
+.light .text-rose-400,
+.light [class*="text-rose-300"],
+.light [class*="text-rose-400"] {
+  color: #BE123C !important;
+  opacity: 1 !important;
 }

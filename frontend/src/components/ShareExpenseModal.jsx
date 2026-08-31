@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, Search, UserPlus, Trash2, Edit3 } from 'lucide-react';
+import { X, Search, UserPlus, Trash2, Edit3, CheckCircle2, UserCheck } from 'lucide-react';
 import { expenses as expensesApi, users, splits } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
 
 const ShareExpenseModal = ({ splitToEdit, onClose }) => {
+  const { user: currentUser } = useAuth();
   const isEditing = Boolean(splitToEdit);
   const [step, setStep] = useState(isEditing ? 2 : 1);
   const [expenseList, setExpenseList] = useState([]);
@@ -48,7 +50,8 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
   }, [isEditing]);
 
   useEffect(() => {
-    if (!searchEmail || searchEmail.length < 2) {
+    const query = searchEmail.trim();
+    if (!query || query.length < 2) {
       setSearchResults([]);
       return;
     }
@@ -58,22 +61,21 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
     searchTimeout.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await users.search(searchEmail);
+        const res = await users.search(query);
         if (res.success) {
-          const existingIds = new Set(participants.map(p => p.userId));
-          setSearchResults(res.data.filter(u => !existingIds.has(u.id)));
+          setSearchResults(res.data || []);
         }
       } catch (err) {
         console.error('User search failed', err);
       } finally {
         setSearching(false);
       }
-    }, 300);
+    }, 250);
 
     return () => {
       if (searchTimeout.current) clearTimeout(searchTimeout.current);
     };
-  }, [searchEmail, participants]);
+  }, [searchEmail]);
 
   const addParticipant = (user) => {
     setParticipants(prev => [...prev, {
@@ -201,32 +203,47 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
                   No expenses found. Create an expense first.
                 </p>
               ) : (
-                expenseList.map(exp => (
-                  <button
-                    key={exp.id}
-                    onClick={() => {
-                      setSelectedExpense(exp);
-                      setStep(2);
-                    }}
-                    className={`w-full text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 ${
-                      selectedExpense?.id === exp.id
-                        ? 'border-emerald-400 bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                        : 'glass-elevated border-white/[0.06] hover:border-emerald-400/30'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center gap-2">
-                      <div className="min-w-0 flex-1 pr-2">
-                        <p className="font-bold text-xs sm:text-sm text-white truncate">{exp.description}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
-                          {exp.category} • {format(new Date(exp.date), 'MMM dd, yyyy')}
-                        </p>
+                expenseList.map(exp => {
+                  const isAlreadySplit = Boolean(exp.sharedExpense);
+                  return (
+                    <button
+                      key={exp.id}
+                      disabled={isAlreadySplit}
+                      onClick={() => {
+                        if (!isAlreadySplit) {
+                          setSelectedExpense(exp);
+                          setStep(2);
+                        }
+                      }}
+                      className={`w-full text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 ${
+                        isAlreadySplit
+                          ? 'glass-elevated border-white/[0.04] opacity-50 cursor-not-allowed'
+                          : selectedExpense?.id === exp.id
+                            ? 'border-emerald-400 bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)] cursor-pointer'
+                            : 'glass-elevated border-white/[0.06] hover:border-emerald-400/30 cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center gap-2">
+                        <div className="min-w-0 flex-1 pr-2">
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-xs sm:text-sm text-white truncate">{exp.description || exp.category}</p>
+                            {isAlreadySplit && (
+                              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                                Already Split
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
+                            {exp.category} • {format(new Date(exp.date), 'MMM dd, yyyy')}
+                          </p>
+                        </div>
+                        <span className="font-black text-sm sm:text-base text-white shrink-0">
+                          ${exp.amount.toFixed(2)}
+                        </span>
                       </div>
-                      <span className="font-black text-sm sm:text-base text-white shrink-0">
-                        ${exp.amount.toFixed(2)}
-                      </span>
-                    </div>
-                  </button>
-                ))
+                    </button>
+                  );
+                })
               )}
             </div>
           )}
@@ -261,27 +278,103 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
 
                 {/* Search results dropdown */}
                 {(searchResults.length > 0 || searching) && (
-                  <div className="mt-2 glass-elevated overflow-hidden divide-y divide-white/[0.06] border border-white/[0.08]">
+                  <div className="mt-2 glass-elevated overflow-hidden divide-y divide-white/[0.06] border border-white/[0.08] rounded-xl shadow-lg">
                     {searching ? (
-                      <p className="text-xs text-slate-400 p-3">Searching registered users...</p>
+                      <div className="flex items-center gap-2.5 p-3 text-xs text-emerald-400">
+                        <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+                        <span>Searching registered users...</span>
+                      </div>
                     ) : (
-                      searchResults.map(user => (
-                        <button
-                          key={user.id}
-                          onClick={() => addParticipant(user)}
-                          className="w-full text-left p-3 flex items-center gap-2.5 hover:bg-emerald-500/15 transition-colors"
-                        >
-                          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-400/25 flex items-center justify-center text-xs font-bold text-white shrink-0">
-                            {user.name?.charAt(0) || '?'}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm font-bold text-white truncate">{user.name}</p>
-                            <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
-                          </div>
-                          <UserPlus size={15} className="text-emerald-400 shrink-0" />
-                        </button>
-                      ))
+                      searchResults.map(user => {
+                        const isSelf = user.isSelf || user.id === currentUser?.id || user.email?.toLowerCase() === currentUser?.email?.toLowerCase();
+                        const isAlreadyAdded = participants.some(p => p.userId === user.id);
+
+                        if (isSelf) {
+                          return (
+                            <div key={user.id} className="w-full text-left p-3 flex items-center justify-between gap-2.5 bg-emerald-500/5">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                                  {user.name?.charAt(0)?.toUpperCase() || '?'}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs sm:text-sm font-bold text-white truncate">{user.name}</p>
+                                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                                      You (Payer)
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                                </div>
+                              </div>
+                              <span className="text-[11px] text-emerald-400/80 font-medium italic shrink-0">
+                                Expense Owner
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        if (isAlreadyAdded) {
+                          return (
+                            <div key={user.id} className="w-full text-left p-3 flex items-center justify-between gap-2.5 bg-white/5 opacity-80">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-xl bg-slate-500/20 border border-white/10 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                                  {user.name?.charAt(0)?.toUpperCase() || '?'}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs sm:text-sm font-bold text-white truncate">{user.name}</p>
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-300">
+                                      Added
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                                </div>
+                              </div>
+                              <span className="text-[11px] text-slate-400 font-semibold shrink-0">
+                                In list
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() => addParticipant(user)}
+                            className="w-full text-left p-3 flex items-center justify-between gap-2.5 hover:bg-emerald-500/15 transition-colors cursor-pointer group"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-400/25 flex items-center justify-center text-xs font-bold text-white shrink-0 group-hover:scale-105 transition-transform">
+                                {user.name?.charAt(0)?.toUpperCase() || '?'}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-emerald-300 transition-colors">
+                                  {user.name}
+                                </p>
+                                <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 group-hover:text-emerald-300 bg-emerald-500/10 group-hover:bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-1 rounded-lg shrink-0 transition-colors">
+                              <UserPlus size={14} />
+                              <span>Add</span>
+                            </div>
+                          </button>
+                        );
+                      })
                     )}
+                  </div>
+                )}
+
+                {/* Empty State when no user found */}
+                {!searching && searchEmail.trim().length >= 2 && searchResults.length === 0 && (
+                  <div className="mt-2 glass-elevated p-3.5 border border-white/[0.08] rounded-xl text-center">
+                    <p className="text-xs text-slate-200 font-semibold">
+                      No registered user found for &quot;<span className="text-emerald-400">{searchEmail}</span>&quot;
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      Make sure the participant has signed up for a Cashio account with this email address.
+                    </p>
                   </div>
                 )}
               </div>

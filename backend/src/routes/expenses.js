@@ -3,6 +3,8 @@ import { body, validationResult } from 'express-validator';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.js';
 
+import { createNotification } from '../utils/notifications.js';
+
 const router = express.Router();
 const prisma = new PrismaClient();
 router.use(authMiddleware);
@@ -51,7 +53,13 @@ router.get('/', async (req, res) => {
     }
     
     const [expenses, total] = await Promise.all([
-      prisma.expense.findMany({ where, skip, take, orderBy: { date: 'desc' } }),
+      prisma.expense.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { date: 'desc' },
+        include: { sharedExpense: { select: { id: true } } }
+      }),
       prisma.expense.count({ where })
     ]);
     
@@ -101,6 +109,18 @@ router.post('/', [
         recurringInterval: recurringInterval || null
       }
     });
+
+    // Trigger high spending alert if expense is substantial (>= $500)
+    if (parseFloat(amount) >= 500) {
+      createNotification({
+        userId: req.user.id,
+        type: 'EXPENSE_ALERT',
+        title: 'High Spending Alert',
+        message: `You recorded a major expense of $${parseFloat(amount).toFixed(2)} in ${category}${description ? ` ("${description}")` : ''}.`,
+        link: '/expenses'
+      });
+    }
+
     res.json({ success: true, data: expense });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

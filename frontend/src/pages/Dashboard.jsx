@@ -82,7 +82,7 @@ const Dashboard = () => {
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
             {getGreeting()}, {user?.name?.split(' ')[0] || 'User'} 👋
           </h1>
-          <p className="text-xs sm:text-sm font-medium text-emerald-300/80 mt-0.5">Welcome to your financial command center.</p>
+          <p className="text-xs sm:text-sm font-medium text-emerald-800 dark:text-emerald-300/80 mt-0.5">Welcome to your financial command center.</p>
         </div>
       </div>
 
@@ -153,7 +153,7 @@ const Dashboard = () => {
           <div className="flex justify-between items-center mb-4 sm:mb-6">
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white tracking-wide">Spending by Category</h2>
-              <p className="text-xs text-emerald-300/70 font-medium">Monthly expense distribution</p>
+              <p className="text-xs text-emerald-800 dark:text-emerald-300/70 font-medium">Monthly expense distribution</p>
             </div>
           </div>
           {summary.length > 0 ? (
@@ -196,7 +196,7 @@ const Dashboard = () => {
           <div className="flex justify-between items-center mb-4 sm:mb-5">
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white tracking-wide">Recent Expenses</h2>
-              <p className="text-xs text-emerald-300/70 font-medium">Latest transactions</p>
+              <p className="text-xs text-emerald-800 dark:text-emerald-300/70 font-medium">Latest transactions</p>
             </div>
             <Link to="/expenses" className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
               <span>View All</span>
