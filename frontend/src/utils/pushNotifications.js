@@ -4,8 +4,14 @@ import { notifications as notificationsApi } from '../lib/api';
  * Converts a base64 string to a Uint8Array for PushManager subscription
  */
 export function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding)
+  if (!base64String || typeof base64String !== 'string') {
+    return new Uint8Array(0);
+  }
+
+  // Remove surrounding quotes, whitespace, or carriage returns
+  const cleanString = base64String.trim().replace(/^["']|["']$/g, '');
+  const padding = '='.repeat((4 - (cleanString.length % 4)) % 4);
+  const base64 = (cleanString + padding)
     .replace(/-/g, '+')
     .replace(/_/g, '/');
 
@@ -191,6 +197,10 @@ export async function getExistingPushSubscription() {
 export async function subscribeToPushNotifications() {
   const env = await detectBrowserEnvironment();
 
+  if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    throw new Error('Web Push on mobile requires an HTTPS connection (e.g. your live Vercel URL https://cashio-tracker.vercel.app). Mobile browsers reject push registrations over unencrypted HTTP.');
+  }
+
   if (env.requiresPwa) {
     throw new Error('On iPhone/iPad, please tap the Share button (⎋ / ↑) and choose "Add to Home Screen" first, then open Cashio from your home screen.');
   }
@@ -228,23 +238,35 @@ export async function subscribeToPushNotifications() {
 
   const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
-  // 4. Subscribe with PushManager
+  // 4. Clean up any existing stale push subscription to prevent key mismatch push service errors
   let subscription = await registration.pushManager.getSubscription();
-  if (!subscription) {
+  if (subscription) {
     try {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedVapidKey
-      });
-    } catch (subErr) {
-      if (env.isBrave) {
-        throw new Error('Brave blocked push services. Please go to brave://settings/privacy, enable "Use Google services for push messaging", and relaunch Brave.');
-      }
-      throw subErr;
+      await subscription.unsubscribe();
+    } catch (unsubErr) {
+      console.warn('[PUSH STALE UNSUB WARNING]:', unsubErr);
     }
+    subscription = null;
   }
 
-  // 5. Send subscription keys to backend
+  // 5. Subscribe with PushManager
+  try {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: convertedVapidKey
+    });
+  } catch (subErr) {
+    console.error('[PUSH SERVICE REGISTRATION ERROR]:', subErr);
+    if (env.isBrave) {
+      throw new Error('Brave blocked push services. Please open brave://settings/privacy, enable "Use Google services for push messaging", and relaunch Brave.');
+    }
+    if (subErr.name === 'AbortError' || subErr.message?.includes('push service error')) {
+      throw new Error('Registration failed with Push Service Error. Please make sure: 1) You are on HTTPS (https://cashio-tracker.vercel.app), 2) Not in Incognito/Private mode, and 3) Google Play Services is active on your phone.');
+    }
+    throw subErr;
+  }
+
+  // 6. Send subscription keys to backend
   const rawKey = subscription.getKey('p256dh');
   const rawAuth = subscription.getKey('auth');
 
