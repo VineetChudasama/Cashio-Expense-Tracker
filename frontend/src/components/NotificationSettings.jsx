@@ -14,13 +14,17 @@ import {
   Receipt,
   BarChart3,
   Target,
-  RefreshCw
+  RefreshCw,
+  Share,
+  Smartphone,
+  ExternalLink,
+  Info
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { notifications as notificationsApi } from '../lib/api';
 import {
   isPushNotificationSupported,
-  isBraveBrowser,
+  detectBrowserEnvironment,
   getNotificationPermission,
   getExistingPushSubscription,
   subscribeToPushNotifications,
@@ -31,7 +35,18 @@ const NotificationSettings = () => {
   const { isDark } = useTheme();
 
   const [supported, setSupported] = useState(true);
-  const [isBrave, setIsBrave] = useState(false);
+  const [browserEnv, setBrowserEnv] = useState({
+    name: 'other',
+    label: 'Browser',
+    isIOS: false,
+    isAndroid: false,
+    isStandalone: false,
+    isSupported: true,
+    requiresPwa: false,
+    isBrave: false,
+    isWebView: false
+  });
+
   const [permission, setPermission] = useState('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -52,16 +67,11 @@ const NotificationSettings = () => {
   // Initialize push notification state and preferences
   useEffect(() => {
     async function init() {
+      const env = await detectBrowserEnvironment();
+      setBrowserEnv(env);
+
       const isSupp = isPushNotificationSupported();
-      setSupported(isSupp);
-
-      const braveDetected = await isBraveBrowser();
-      setIsBrave(braveDetected);
-
-      if (!isSupp) {
-        setLoading(false);
-        return;
-      }
+      setSupported(isSupp || env.requiresPwa);
 
       const perm = getNotificationPermission();
       setPermission(perm);
@@ -109,7 +119,7 @@ const NotificationSettings = () => {
       if (perm === 'denied') {
         setErrorMessage('Notifications are blocked by your browser settings. Please allow notifications in your browser address bar permissions.');
       } else {
-        setErrorMessage(err.message || 'Failed to enable notifications. Please try again.');
+        setErrorMessage(err.message || 'Failed to enable notifications. Please check browser permissions.');
       }
     } finally {
       setActionLoading(false);
@@ -142,7 +152,7 @@ const NotificationSettings = () => {
     try {
       const res = await notificationsApi.sendTestPush();
       if (res.success) {
-        setSuccessMessage('Test notification dispatched! Look out for the Chrome notification on your screen.');
+        setSuccessMessage('Test notification dispatched! Look out for the notification banner on your screen or phone.');
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
         setErrorMessage(res.error || 'Failed to dispatch test notification.');
@@ -192,9 +202,18 @@ const NotificationSettings = () => {
             <Bell size={20} />
           </div>
           <div>
-            <h2 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-[#07241E]'}`}>
-              Notifications
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-[#07241E]'}`}>
+                Notifications
+              </h2>
+              {browserEnv.label && (
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                  isDark ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-[#EAF5F2] border-[#CEE8E1] text-[#147D70]'
+                }`}>
+                  {browserEnv.label}
+                </span>
+              )}
+            </div>
             <p className={`text-xs font-medium mt-0.5 ${isDark ? 'text-[#72C4B9]/80' : 'text-[#1F7669]'}`}>
               Stay on top of your spending with helpful reminders and budget alerts.
             </p>
@@ -203,7 +222,7 @@ const NotificationSettings = () => {
 
         {/* Status Badge */}
         <div className="self-start sm:self-auto">
-          {!supported ? (
+          {!supported && !browserEnv.requiresPwa ? (
             <span className="px-3 py-1 rounded-xl text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
               Not Supported in this Browser
             </span>
@@ -264,22 +283,52 @@ const NotificationSettings = () => {
 
       {/* Main Action Block */}
       <div className="py-5">
-        {!supported ? (
+        {/* iOS Safari Home Screen Requirement */}
+        {browserEnv.requiresPwa ? (
+          <div className={`p-4 sm:p-5 rounded-2xl border text-xs leading-relaxed space-y-2.5 ${
+            isDark
+              ? 'bg-blue-950/20 border-blue-500/30 text-blue-200'
+              : 'bg-blue-50/90 border-blue-300 text-blue-950 shadow-xs'
+          }`}>
+            <div className="flex items-center gap-2 font-bold text-sm">
+              <Smartphone size={17} className="text-blue-400" />
+              <span>Enable iOS Safari Notifications</span>
+            </div>
+            <p className="opacity-90">
+              Apple requires web apps to be installed to your Home Screen before enabling push notifications on iOS:
+            </p>
+            <ol className="list-decimal list-inside space-y-1 font-medium opacity-95">
+              <li>Tap the <strong>Share</strong> button <Share size={13} className="inline mx-1" /> at the bottom of Safari.</li>
+              <li>Scroll down and select <strong>"Add to Home Screen"</strong>.</li>
+              <li>Launch Cashio from your Home Screen, return to Settings, and tap <strong>Enable Notifications</strong>.</li>
+            </ol>
+          </div>
+        ) : browserEnv.isWebView ? (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 leading-relaxed space-y-1.5">
+            <p className="font-bold flex items-center gap-1.5">
+              <Info size={15} />
+              <span>In-App Browser Detected</span>
+            </p>
+            <p>
+              Notifications cannot be registered inside in-app web views (Instagram / TikTok / Twitter). Please tap the menu button (•••) and choose <strong>"Open in Chrome / Safari"</strong> to enable notifications.
+            </p>
+          </div>
+        ) : !supported ? (
           <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 leading-relaxed">
-            Web Push Notifications are not supported in your current browser or private browsing window. Please use Google Chrome, Microsoft Edge, or a standard Chromium browser over HTTPS.
+            Web Push Notifications are not supported in your current browser window. Please use Google Chrome, Microsoft Edge, Mozilla Firefox, Brave, or Safari over HTTPS.
           </div>
         ) : permission === 'denied' ? (
           <div className="p-4 sm:p-5 rounded-2xl bg-rose-950/20 border border-rose-500/30 text-xs leading-relaxed space-y-2">
             <div className="flex items-center gap-2 font-bold text-rose-300">
               <ShieldAlert size={16} />
-              <span>Notifications are currently blocked in your browser.</span>
+              <span>Notifications are currently blocked in your browser settings.</span>
             </div>
             <p className={isDark ? 'text-slate-300' : 'text-[#3B625A]'}>
-              To enable Cashio notifications on your phone or desktop:
+              To unblock and enable notifications in {browserEnv.label}:
             </p>
             <ol className={`list-decimal list-inside space-y-1 font-medium ${isDark ? 'text-slate-300' : 'text-[#3B625A]'}`}>
-              <li>Tap the <strong>lock / tune icon (⚙)</strong> next to the URL in Chrome address bar.</li>
-              <li>Tap <strong>Permissions → Notifications</strong> and select <strong>Allow</strong>.</li>
+              <li>Tap the <strong>lock / site permissions icon (⚙ / 🔒)</strong> on the left of your address bar.</li>
+              <li>Toggle <strong>Notifications</strong> to <strong>Allow</strong>.</li>
               <li>Refresh this page and tap <strong>Enable Notifications</strong>.</li>
             </ol>
           </div>
@@ -290,7 +339,7 @@ const NotificationSettings = () => {
                 {isSubscribed ? 'Browser Push Notifications Active' : 'Enable Instant Phone & Desktop Push'}
               </p>
               <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-300' : 'text-[#4F736C]'}`}>
-                Receive budget velocity alerts, weekly spending overviews, and daily expense reminders even when Cashio is closed.
+                Receive budget velocity alerts, weekly spending overviews, and daily expense reminders across any browser.
               </p>
             </div>
 
@@ -355,23 +404,23 @@ const NotificationSettings = () => {
           </div>
         )}
 
-        {/* Brave Browser Notice */}
-        {isBrave && !isSubscribed && (
+        {/* Brave Browser Specific Tip */}
+        {browserEnv.isBrave && !isSubscribed && (
           <div className={`mt-4 p-3.5 sm:p-4 rounded-2xl border text-xs leading-relaxed space-y-2 ${
             isDark
               ? 'bg-amber-950/25 border-amber-500/30 text-amber-200'
               : 'bg-amber-50/90 border-amber-300/80 text-amber-950 shadow-xs'
           }`}>
             <p className="font-bold flex items-center gap-1.5 text-xs">
-              <span>🦁 Brave Browser Push Setup:</span>
+              <span>🦁 Brave Browser Push Notice:</span>
             </p>
             <p className="text-[11px] opacity-90">
-              Brave disables Google push messaging services by default to maximize privacy. To enable push alerts in Brave:
+              Brave disables Google push messaging by default. To receive notifications in Brave:
             </p>
             <ol className="list-decimal list-inside text-[11px] space-y-1 font-medium opacity-90">
-              <li>Open a new tab and paste: <code className="px-1.5 py-0.5 rounded bg-black/20 font-mono font-bold">brave://settings/privacy</code></li>
+              <li>Open a tab and paste: <code className="px-1.5 py-0.5 rounded bg-black/20 font-mono font-bold">brave://settings/privacy</code></li>
               <li>Turn <strong>ON</strong> the toggle for <strong>"Use Google services for push messaging"</strong>.</li>
-              <li>Relaunch Brave, return here, and tap <strong>Enable Notifications</strong>.</li>
+              <li>Relaunch Brave and tap <strong>Enable Notifications</strong> above.</li>
             </ol>
           </div>
         )}
