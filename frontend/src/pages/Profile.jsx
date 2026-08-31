@@ -28,6 +28,7 @@ import { useAuth } from '../context/AuthContext';
 import { users as usersApi } from '../lib/api';
 import { format } from 'date-fns';
 import PasswordRequirements, { checkPasswordCriteria } from '../components/PasswordRequirements';
+import NotificationSettings from '../components/NotificationSettings';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -669,6 +670,9 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Push Notification & Preferences Section */}
+      <NotificationSettings />
 
       {/* Danger Zone: Delete Account */}
       <div className="glass-card p-5 sm:p-6 lg:p-7 border border-rose-500/20 bg-rose-950/10 rounded-3xl w-full">

@@ -8,6 +8,7 @@ import splitRoutes from './routes/splits.js';
 import insightRoutes from './routes/insights.js';
 import userRoutes from './routes/users.js';
 import notificationRoutes from './routes/notifications.js';
+import { startNotificationScheduler } from './utils/pushScheduler.js';
 
 dotenv.config();
 
@@ -35,4 +36,5 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  startNotificationScheduler();
 });

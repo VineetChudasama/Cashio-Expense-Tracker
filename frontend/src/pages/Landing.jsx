@@ -689,19 +689,23 @@ const Landing = () => {
         <div className="w-full overflow-hidden select-none pointer-events-none -mb-6 sm:-mb-14 relative z-0 flex justify-center">
           <svg 
             viewBox="0 0 1000 180" 
-            className="w-full h-100 select-none pointer-events-none"
+            className={`w-full h-100 select-none pointer-events-none transition-all duration-300 ${
+              isDark 
+                ? 'drop-shadow-[0_0_28px_rgba(52,211,153,0.35)] drop-shadow-[0_0_10px_rgba(52,211,153,0.25)]' 
+                : 'drop-shadow-[0_0_28px_rgba(121,212,195,0.6)] drop-shadow-[0_0_10px_rgba(1,63,64,0.25)]'
+            }`}
             preserveAspectRatio="none"
           >
             <defs>
               <linearGradient id="cashFade" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={isDark ? '#E2E8F0' : '#147D70'} stopOpacity={isDark ? '0.45' : '0.35'} />
-                <stop offset="55%" stopColor={isDark ? '#E2E8F0' : '#147D70'} stopOpacity={isDark ? '0.22' : '0.15'} />
-                <stop offset="92%" stopColor={isDark ? '#E2E8F0' : '#147D70'} stopOpacity="0" />
+                <stop offset="0%" stopColor={isDark ? '#E2E8F0' : '#013f40'} stopOpacity={isDark ? '0.45' : '0.42'} />
+                <stop offset="55%" stopColor={isDark ? '#E2E8F0' : '#013f40'} stopOpacity={isDark ? '0.22' : '0.18'} />
+                <stop offset="92%" stopColor={isDark ? '#E2E8F0' : '#013f40'} stopOpacity="0" />
               </linearGradient>
               <linearGradient id="ioFade" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={isDark ? '#34D399' : '#3BAE9F'} stopOpacity={isDark ? '0.75' : '0.65'} />
-                <stop offset="55%" stopColor={isDark ? '#34D399' : '#3BAE9F'} stopOpacity={isDark ? '0.38' : '0.28'} />
-                <stop offset="92%" stopColor={isDark ? '#34D399' : '#3BAE9F'} stopOpacity="0" />
+                <stop offset="0%" stopColor={isDark ? '#34D399' : '#79d4c3'} stopOpacity={isDark ? '0.75' : '0.65'} />
+                <stop offset="55%" stopColor={isDark ? '#34D399' : '#79d4c3'} stopOpacity={isDark ? '0.38' : '0.28'} />
+                <stop offset="92%" stopColor={isDark ? '#34D399' : '#79d4c3'} stopOpacity="0" />
               </linearGradient>
             </defs>
             <text

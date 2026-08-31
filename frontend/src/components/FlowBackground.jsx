@@ -12,6 +12,8 @@ import { useTheme } from '../context/ThemeContext';
 export default function FlowBackground({ children, showGrid = true, showAurora = false, interactive = false }) {
   const { isDark } = useTheme();
 
+  return (
+    <div className="relative min-h-screen overflow-x-hidden">
       {/* 3. Modern Technical Matrix Grid Overlay */}
       {showGrid && (
         <div

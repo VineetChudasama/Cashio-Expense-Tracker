@@ -75,6 +75,12 @@ export const notifications = {
   markAllAsRead: () => api.patch('/notifications/read-all').then(res => res.data),
   delete: (id) => api.delete(`/notifications/${id}`).then(res => res.data),
   clearAll: () => api.delete('/notifications/clear-all').then(res => res.data),
+  getVapidPublicKey: () => api.get('/notifications/vapid-public-key').then(res => res.data),
+  getPreferences: () => api.get('/notifications/preferences').then(res => res.data),
+  updatePreferences: (data) => api.put('/notifications/preferences', data).then(res => res.data),
+  subscribePush: (data) => api.post('/notifications/subscribe', data).then(res => res.data),
+  unsubscribePush: (data) => api.post('/notifications/unsubscribe', data).then(res => res.data),
+  sendTestPush: () => api.post('/notifications/test').then(res => res.data),
 };
 
 export const insights = {
