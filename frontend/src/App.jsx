@@ -7,6 +7,18 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import CashioOrbitalLoader from './components/CashioOrbitalLoader';
 
+import Landing from './pages/Landing';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Expenses from './pages/Expenses';
+import Forecast from './pages/Forecast';
+import Splits from './pages/Splits';
+import Insights from './pages/Insights';
+import Profile from './pages/Profile';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
 
@@ -22,52 +34,38 @@ function ScrollToTop() {
   return null;
 }
 
-const Landing = React.lazy(() => import('./pages/Landing'));
-const Login = React.lazy(() => import('./pages/Login'));
-const Register = React.lazy(() => import('./pages/Register'));
-const Dashboard = React.lazy(() => import('./pages/Dashboard'));
-const Expenses = React.lazy(() => import('./pages/Expenses'));
-const Forecast = React.lazy(() => import('./pages/Forecast'));
-const Splits = React.lazy(() => import('./pages/Splits'));
-const Insights = React.lazy(() => import('./pages/Insights'));
-const Profile = React.lazy(() => import('./pages/Profile'));
-const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
-const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
-
 function AppContent() {
   const { loading: authLoading } = useAuth();
 
-  // Keep a single continuous orbital loading screen until authentication & initial chunk are ready
+  // Exactly one persistent continuous loader during startup and authentication
   if (authLoading) {
     return <CashioOrbitalLoader size="fullscreen" text="Loading..." />;
   }
 
   return (
-    <React.Suspense fallback={<CashioOrbitalLoader size="fullscreen" text="Loading..." />}>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/landing" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/terms-of-service" element={<TermsOfService />} />
-        
-        <Route element={<ProtectedRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/expenses" element={<Expenses />} />
-            <Route path="/forecast" element={<Forecast />} />
-            <Route path="/splits" element={<Splits />} />
-            <Route path="/insights" element={<Insights />} />
-            <Route path="/profile" element={<Profile />} />
-          </Route>
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/landing" element={<Landing />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
+      
+      <Route element={<ProtectedRoute />}>
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/expenses" element={<Expenses />} />
+          <Route path="/forecast" element={<Forecast />} />
+          <Route path="/splits" element={<Splits />} />
+          <Route path="/insights" element={<Insights />} />
+          <Route path="/profile" element={<Profile />} />
         </Route>
+      </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </React.Suspense>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

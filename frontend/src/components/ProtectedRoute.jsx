@@ -2,13 +2,11 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-import CashioOrbitalLoader from './CashioOrbitalLoader';
-
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <CashioOrbitalLoader size="fullscreen" text="Loading..." />;
+    return null;
   }
 
   if (!user) {
