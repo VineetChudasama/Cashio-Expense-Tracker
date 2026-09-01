@@ -247,6 +247,14 @@ router.post('/settle-transaction', async (req, res) => {
       return res.status(400).json({ success: false, error: 'fromUserId and toUserId are required' });
     }
 
+    // Strict Security Rule: Only the receiver (toUserId) who receives the money can confirm and settle the amount!
+    if (req.user.id !== toUserId) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Only the receiver of the payment can confirm and mark this debt as settled.' 
+      });
+    }
+
     await prisma.participant.updateMany({
       where: {
         userId: fromUserId,
@@ -265,18 +273,17 @@ router.post('/settle-transaction', async (req, res) => {
       data: { settled: true }
     });
 
-    // Notify the other peer
+    // Notify the debtor/payer that the receiver confirmed the settlement
     const currentUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { name: true } });
-    const targetUserId = req.user.id === fromUserId ? toUserId : fromUserId;
     createNotification({
-      userId: targetUserId,
+      userId: fromUserId,
       type: 'SPLIT_SETTLED',
-      title: 'Peer Debt Settled',
-      message: `${currentUser?.name || 'A user'} marked all pending split balances as settled with you.`,
+      title: 'Payment Received & Settled',
+      message: `${currentUser?.name || 'Your friend'} confirmed receiving your payment and marked your balance as settled.`,
       link: '/splits'
     });
 
-    res.json({ success: true, message: 'Settlement completed successfully' });
+    res.json({ success: true, message: 'Settlement confirmed successfully' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -292,8 +299,12 @@ router.patch('/:targetId/settle', async (req, res) => {
     });
     
     if (participant) {
-      if (participant.sharedExpense.createdByUserId !== req.user.id && participant.userId !== req.user.id) {
-        return res.status(403).json({ success: false, error: 'Unauthorized to settle this record' });
+      // Strict Rule: Only the person who created/paid the original expense (the receiver of the money) can mark the participant settled
+      if (participant.sharedExpense.createdByUserId !== req.user.id) {
+        return res.status(403).json({ 
+          success: false, 
+          error: 'Only the receiver (the person who paid for the expense) can mark this debt as settled.' 
+        });
       }
 
       const updated = await prisma.participant.update({
@@ -301,17 +312,15 @@ router.patch('/:targetId/settle', async (req, res) => {
         data: { settled: true }
       });
 
-      // Notify the other party
-      const currentUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { name: true } });
-      const notifyUserId = req.user.id === participant.userId
-        ? participant.sharedExpense.createdByUserId
-        : participant.userId;
+      // Notify the participant debtor
+      const currentUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { name: true, currency: true } });
+      const symbol = currentUser?.currency?.includes('₹') ? '₹' : currentUser?.currency?.includes('€') ? '€' : currentUser?.currency?.includes('£') ? '£' : '$';
 
       createNotification({
-        userId: notifyUserId,
+        userId: participant.userId,
         type: 'SPLIT_SETTLED',
-        title: 'Split Share Settled',
-        message: `${currentUser?.name || 'A user'} settled a share of $${participant.amountOwed.toFixed(2)} for ${participant.sharedExpense.expense.description || participant.sharedExpense.expense.category}.`,
+        title: 'Split Debt Marked Settled',
+        message: `${currentUser?.name || 'The expense creator'} marked your share of ${symbol}${participant.amountOwed.toFixed(2)} for ${participant.sharedExpense.expense.description || participant.sharedExpense.expense.category} as received and settled.`,
         link: '/splits'
       });
 
@@ -340,12 +349,12 @@ router.patch('/:targetId/settle', async (req, res) => {
     createNotification({
       userId: targetId,
       type: 'SPLIT_SETTLED',
-      title: 'Peer Balance Settled',
-      message: `${currentUser?.name || 'A user'} marked all balances between you as settled.`,
+      title: 'Peer Debt Settled',
+      message: `${currentUser?.name || 'A user'} marked all pending split balances as settled with you.`,
       link: '/splits'
     });
-    
-    res.json({ success: true, message: 'Peer settlement completed' });
+
+    res.json({ success: true, message: 'Settled successfully' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
