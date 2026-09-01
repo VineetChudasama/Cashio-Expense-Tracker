@@ -20,7 +20,7 @@ router.post('/register', [
   if (!errors.isEmpty()) return res.status(400).json({ success: false, error: errors.array() });
 
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, currency, categoryLimits } = req.body;
 
     const strengthCheck = validatePasswordStrength(password);
     if (!strengthCheck.isValid) {
@@ -39,12 +39,48 @@ router.post('/register', [
       }
       user = await prisma.user.update({
         where: { id: existingUser.id },
-        data: { name, password: hashedPassword }
+        data: { 
+          name, 
+          password: hashedPassword,
+          currency: currency || existingUser.currency || 'USD ($)'
+        }
       });
     } else {
       user = await prisma.user.create({
-        data: { email: normalizedEmail, password: hashedPassword, name, isVerified: false }
+        data: { 
+          email: normalizedEmail, 
+          password: hashedPassword, 
+          name, 
+          currency: currency || 'USD ($)',
+          isVerified: false 
+        }
       });
+    }
+
+    // Save initial category spending limits if provided
+    if (categoryLimits && typeof categoryLimits === 'object') {
+      const entries = Array.isArray(categoryLimits)
+        ? categoryLimits
+        : Object.entries(categoryLimits).map(([cat, lim]) => ({ category: cat, limit: parseFloat(lim) }));
+
+      for (const item of entries) {
+        if (item.category && !isNaN(item.limit) && item.limit > 0) {
+          await prisma.categoryLimit.upsert({
+            where: {
+              userId_category: {
+                userId: user.id,
+                category: item.category
+              }
+            },
+            update: { limit: parseFloat(item.limit) },
+            create: {
+              userId: user.id,
+              category: item.category,
+              limit: parseFloat(item.limit)
+            }
+          }).catch(err => console.warn('[CATEGORY LIMIT ONBOARDING WARNING]:', err.message));
+        }
+      }
     }
 
     await sendEmailOTP(normalizedEmail, 'REGISTER', { password, name });

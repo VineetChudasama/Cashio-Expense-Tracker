@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.js';
 
 import { createNotification } from '../utils/notifications.js';
+import { checkAndTriggerSpendingAlerts } from '../utils/spendingAlerts.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -110,16 +111,13 @@ router.post('/', [
       }
     });
 
-    // Trigger high spending alert if expense is substantial (>= $500)
-    if (parseFloat(amount) >= 500) {
-      createNotification({
-        userId: req.user.id,
-        type: 'EXPENSE_ALERT',
-        title: 'High Spending Alert',
-        message: `You recorded a major expense of $${parseFloat(amount).toFixed(2)} in ${category}${description ? ` ("${description}")` : ''}.`,
-        link: '/expenses'
-      });
-    }
+    // Trigger High Spending Alerts based on configured Category Limits (50%, 80%, 100%+ exceeded)
+    checkAndTriggerSpendingAlerts({
+      userId: req.user.id,
+      category,
+      newExpenseAmount: parseFloat(amount),
+      expenseDate: date
+    }).catch(err => console.error('[EXPENSE SPENDING ALERT ERROR]:', err));
 
     res.json({ success: true, data: expense });
   } catch (err) {
@@ -145,6 +143,15 @@ router.put('/:id', async (req, res) => {
         recurringInterval
       }
     });
+
+    // Check spending alerts after update
+    checkAndTriggerSpendingAlerts({
+      userId: req.user.id,
+      category: expense.category,
+      newExpenseAmount: expense.amount,
+      expenseDate: expense.date
+    }).catch(err => console.error('[EXPENSE UPDATE ALERT ERROR]:', err));
+
     res.json({ success: true, data: expense });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

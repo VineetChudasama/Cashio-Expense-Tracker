@@ -1,21 +1,81 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, ArrowLeft, Eye, EyeOff, MailCheck, ShieldCheck, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { 
+  Sparkles, 
+  ArrowRight, 
+  ArrowLeft, 
+  Eye, 
+  EyeOff, 
+  ShieldCheck, 
+  RefreshCw, 
+  AlertCircle, 
+  CheckCircle2,
+  Sliders,
+  User,
+  Mail,
+  Lock,
+  Coins,
+  Utensils,
+  ShoppingBag,
+  Plane,
+  Film,
+  Car,
+  Home,
+  Zap,
+  HeartPulse,
+  GraduationCap,
+  Layers,
+  Check
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { auth as authApi } from '../lib/api';
 import PasswordRequirements, { checkPasswordCriteria } from '../components/PasswordRequirements';
 import ThemeToggle from '../components/ThemeToggle';
+import { SUPPORTED_CURRENCIES, getCurrencySymbol } from '../utils/currency';
+
+const CATEGORY_CONFIG = [
+  { name: 'Food', icon: Utensils, defaultLimit: 500, placeholder: 'e.g. 500' },
+  { name: 'Shopping', icon: ShoppingBag, defaultLimit: 300, placeholder: 'e.g. 300' },
+  { name: 'Travel', icon: Plane, defaultLimit: 250, placeholder: 'e.g. 250' },
+  { name: 'Entertainment', icon: Film, defaultLimit: 150, placeholder: 'e.g. 150' },
+  { name: 'Transport', icon: Car, defaultLimit: 150, placeholder: 'e.g. 150' },
+  { name: 'Rent', icon: Home, defaultLimit: 1200, placeholder: 'e.g. 1200' },
+  { name: 'Utilities', icon: Zap, defaultLimit: 200, placeholder: 'e.g. 200' },
+  { name: 'Health', icon: HeartPulse, defaultLimit: 150, placeholder: 'e.g. 150' },
+  { name: 'Education', icon: GraduationCap, defaultLimit: 200, placeholder: 'e.g. 200' },
+  { name: 'Other', icon: Layers, defaultLimit: 100, placeholder: 'e.g. 100' }
+];
 
 const Register = () => {
   const { isDark, logoUrl } = useTheme();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // 1: Signup Form, 2: OTP Verification
+  const [activeTab, setActiveTab] = useState('personal'); // 'personal' | 'limits'
+  
+  // Personal Info Form State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [currency, setCurrency] = useState('USD ($)');
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordRules, setShowPasswordRules] = useState(false);
+
+  // Category Limits Form State
+  const [categoryLimits, setCategoryLimits] = useState({
+    Food: '',
+    Shopping: '',
+    Travel: '',
+    Entertainment: '',
+    Transport: '',
+    Rent: '',
+    Utilities: '',
+    Health: '',
+    Education: '',
+    Other: ''
+  });
+
+  // OTP State
   const [otpCode, setOtpCode] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,6 +86,7 @@ const Register = () => {
 
   const navigate = useNavigate();
   const { register, verifyRegisterOtp } = useAuth();
+  const currencySymbol = getCurrencySymbol(currency);
 
   useEffect(() => {
     let interval;
@@ -37,13 +98,50 @@ const Register = () => {
     return () => clearInterval(interval);
   }, [step, resendTimer]);
 
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const handleLimitChange = (category, val) => {
+    // Only allow numbers and decimal
+    const cleanVal = val.replace(/[^0-9.]/g, '');
+    setCategoryLimits(prev => ({
+      ...prev,
+      [category]: cleanVal
+    }));
+  };
+
+  const applySuggestedPresets = () => {
+    const isINR = currency.includes('INR') || currency.includes('₹');
+    const multiplier = isINR ? 10 : 1;
+    
+    const preset = {};
+    CATEGORY_CONFIG.forEach(cat => {
+      preset[cat.name] = (cat.defaultLimit * multiplier).toString();
+    });
+    setCategoryLimits(preset);
+  };
+
+  const clearAllLimits = () => {
+    const empty = {};
+    CATEGORY_CONFIG.forEach(cat => {
+      empty[cat.name] = '';
+    });
+    setCategoryLimits(empty);
+  };
+
+  const validatePersonalInfo = () => {
+    if (!name.trim()) {
+      setError('Please enter your full name.');
+      setActiveTab('personal');
+      return false;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setError('Please enter a valid email address.');
+      setActiveTab('personal');
+      return false;
+    }
 
     const criteria = checkPasswordCriteria(password);
     if (!criteria.allValid) {
       setShowPasswordRules(true);
+      setActiveTab('personal');
       if (!criteria.isMinLength) {
         setError('Password must be at least 10 characters long.');
       } else if (!criteria.hasUppercase) {
@@ -57,13 +155,41 @@ const Register = () => {
       } else if (!criteria.isNotCommon) {
         setError('This password is too common or easily guessable. Please choose a stronger password.');
       }
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleProceedToLimits = (e) => {
+    e.preventDefault();
+    setError('');
+    if (validatePersonalInfo()) {
+      setActiveTab('limits');
+    }
+  };
+
+  const handleRegisterSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+
+    if (!validatePersonalInfo()) {
       return;
     }
 
     setIsSubmitting(true);
     
     try {
-      const res = await register(email, password, name);
+      // Format category limits for backend
+      const formattedLimits = {};
+      Object.entries(categoryLimits).forEach(([cat, val]) => {
+        const num = parseFloat(val);
+        if (!isNaN(num) && num > 0) {
+          formattedLimits[cat] = num;
+        }
+      });
+
+      const res = await register(email, password, name, currency, formattedLimits);
       if (res.success) {
         if (res.requireVerification) {
           setStep(2);
@@ -151,6 +277,9 @@ const Register = () => {
     }
   };
 
+  // Count configured limits
+  const configuredLimitsCount = Object.values(categoryLimits).filter(v => parseFloat(v) > 0).length;
+
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-[var(--bg-primary)] px-4 py-6 sm:py-10 overflow-hidden selection:bg-[#10B981]/30 selection:text-[#34D399]">
       {/* Precision Dot Matrix Grid */}
@@ -166,7 +295,7 @@ const Register = () => {
         }}
       />
 
-      <div className="w-full max-w-md flex items-center justify-between mb-3 sm:mb-4 px-1 z-20">
+      <div className={`w-full ${step === 1 && activeTab === 'limits' ? 'max-w-xl' : 'max-w-md'} flex items-center justify-between mb-3 sm:mb-4 px-1 z-20 transition-all duration-300`}>
         <Link 
           to="/" 
           className="glass-card px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-emerald-400 border border-white/10 hover:border-emerald-500/30 transition-all flex items-center gap-1.5 shadow-lg backdrop-blur-md hover:scale-[1.02]"
@@ -182,24 +311,66 @@ const Register = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-md glass-card p-5 sm:p-10 border border-white/10 relative z-10"
+        className={`w-full ${step === 1 && activeTab === 'limits' ? 'max-w-xl' : 'max-w-md'} glass-card p-5 sm:p-8 md:p-9 border border-white/10 relative z-10 transition-all duration-300`}
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <img 
             src={logoUrl} 
             alt="Cashio Logo" 
-            className="w-16 h-16 object-contain mx-auto mb-2 drop-shadow-[0_0_18px_rgba(16,185,129,0.45)] hover:scale-105 transition-transform duration-300" 
+            className="w-14 h-14 object-contain mx-auto mb-2 drop-shadow-[0_0_18px_rgba(16,185,129,0.45)] hover:scale-105 transition-transform duration-300" 
           />
-          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)] tracking-tight">
             Cash<span className="text-[#10B981] dark:text-emerald-400">io</span>
           </h1>
           <span className="block text-[8px] md:text-[9px] uppercase font-extrabold tracking-[0.22em] text-[#5A7A73] dark:text-slate-400 mt-0.5">
             FINANCE PRO
           </span>
           <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-300/80 mt-1.5">
-            {step === 1 ? 'Create your smart finance workspace' : 'Authenticate Your Email Address'}
+            {step === 1 
+              ? (activeTab === 'personal' ? 'Step 1 of 2: Personal Information' : 'Step 2 of 2: Category Spending Limits')
+              : 'Authenticate Your Email Address'}
           </p>
         </div>
+
+        {/* 2 Tabs Header during Step 1 */}
+        {step === 1 && (
+          <div className="flex p-1.5 rounded-2xl bg-black/20 border border-white/10 mb-6 relative">
+            <button
+              type="button"
+              onClick={() => setActiveTab('personal')}
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
+                activeTab === 'personal'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <User size={14} />
+              <span>1. Personal Info</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (validatePersonalInfo()) {
+                  setActiveTab('limits');
+                }
+              }}
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
+                activeTab === 'limits'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Sliders size={14} />
+              <span>2. Category Limits</span>
+              {configuredLimitsCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-emerald-400 text-black text-[10px] font-black">
+                  {configuredLimitsCount}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
 
         <AnimatePresence>
           {error && (
@@ -228,79 +399,226 @@ const Register = () => {
         </AnimatePresence>
 
         {step === 1 ? (
-          <form onSubmit={handleRegisterSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">Full Name</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                placeholder="John Doe"
-              />
-            </div>
+          <div>
+            {/* TAB 1: PERSONAL INFORMATION */}
+            {activeTab === 'personal' && (
+              <motion.form 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                onSubmit={handleProceedToLimits} 
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <User size={13} className="text-emerald-400" />
+                    <span>Full Name</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    placeholder="John Doe"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">Email Address</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                placeholder="you@example.com"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (!showPasswordRules) setShowPasswordRules(true);
-                  }}
-                  onFocus={() => setShowPasswordRules(true)}
-                  className="w-full glass-inset pl-4 pr-11 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                  placeholder="••••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-300 transition-colors p-1"
-                  title={showPassword ? 'Hide password' : 'View password'}
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
-              </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <Mail size={13} className="text-emerald-400" />
+                    <span>Email Address</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    placeholder="you@example.com"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <Lock size={13} className="text-emerald-400" />
+                    <span>Password</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (!showPasswordRules) setShowPasswordRules(true);
+                      }}
+                      onFocus={() => setShowPasswordRules(true)}
+                      className="w-full glass-inset pl-4 pr-11 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                      placeholder="••••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-300 transition-colors p-1"
+                      title={showPassword ? 'Hide password' : 'View password'}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </div>
 
-              <PasswordRequirements 
-                password={password} 
-                isVisible={showPasswordRules} 
-              />
-            </div>
+                  <PasswordRequirements 
+                    password={password} 
+                    isVisible={showPasswordRules} 
+                  />
+                </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 mt-4"
-            >
-              {isSubmitting ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <>
-                  <span>Proceed to Email Verification</span>
-                  <ArrowRight size={16} />
-                </>
-              )}
-            </button>
-          </form>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <Coins size={13} className="text-emerald-400" />
+                    <span>Preferred Currency</span>
+                  </label>
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer"
+                  >
+                    {SUPPORTED_CURRENCIES.map(c => (
+                      <option key={c.code} value={c.label} className="bg-[#041915] text-white">
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className="w-full glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <span>Next: Set Spending Limits</span>
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              </motion.form>
+            )}
+
+            {/* TAB 2: CATEGORY LIMITS */}
+            {activeTab === 'limits' && (
+              <motion.div 
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-5"
+              >
+                <div className="p-3.5 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 flex items-start gap-2.5">
+                  <Sparkles size={18} className="text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="text-xs text-slate-300">
+                    <span className="font-bold text-emerald-300 block mb-0.5">High Spending Alerts Protection</span>
+                    Set monthly limits to receive automatic notifications when you reach <strong>50%</strong>, <strong>80%</strong>, or <strong>exceed (100%+)</strong> your category limit. (You can edit these anytime in Profile).
+                  </div>
+                </div>
+
+                {/* Presets Bar */}
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    Quick Setup
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={applySuggestedPresets}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/25 transition-all cursor-pointer"
+                    >
+                      Fill Suggested
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearAllLimits}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white/5 text-slate-400 hover:text-white border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Category Limits Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto pr-1">
+                  {CATEGORY_CONFIG.map(cat => {
+                    const Icon = cat.icon;
+                    const val = categoryLimits[cat.name] || '';
+
+                    return (
+                      <div 
+                        key={cat.name} 
+                        className={`p-3 rounded-2xl border transition-all ${
+                          val 
+                            ? 'bg-emerald-950/30 border-emerald-400/40 shadow-sm' 
+                            : 'bg-black/20 border-white/[0.08] hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                              <Icon size={14} />
+                            </div>
+                            <span className="text-xs font-bold text-white">{cat.name}</span>
+                          </div>
+                          {val && (
+                            <span className="text-[10px] font-extrabold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                              {currencySymbol}{parseFloat(val).toLocaleString()}/mo
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-400">
+                            {currencySymbol}
+                          </span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={val}
+                            onChange={(e) => handleLimitChange(cat.name, e.target.value)}
+                            placeholder={cat.placeholder}
+                            className="w-full glass-inset pl-7 pr-3 py-2 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('personal')}
+                    className="py-3 px-4 rounded-2xl font-bold text-xs text-slate-300 hover:text-white bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                  >
+                    &larr; Back
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={handleRegisterSubmit}
+                    className="flex-1 glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    {isSubmitting ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <span>Create Account & Verify</span>
+                        <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </div>
         ) : (
+          /* STEP 2: OTP VERIFICATION */
           <form onSubmit={handleVerifyOtp} className="space-y-5">
             <div className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/25 text-center">
               <p className="text-xs text-slate-300">
@@ -333,7 +651,7 @@ const Register = () => {
             <button
               type="submit"
               disabled={isSubmitting || otpCode.length < 6}
-              className="w-full glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -349,16 +667,16 @@ const Register = () => {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-slate-400 hover:text-white font-semibold transition-colors"
+                className="text-slate-400 hover:text-white font-semibold transition-colors cursor-pointer"
               >
-                &larr; Change Email
+                &larr; Change Details
               </button>
 
               <button
                 type="button"
                 onClick={handleResendOtp}
                 disabled={resendTimer > 0 || resending}
-                className={`flex items-center gap-1 font-bold ${
+                className={`flex items-center gap-1 font-bold cursor-pointer ${
                   resendTimer > 0
                     ? 'text-slate-500 cursor-not-allowed'
                     : 'text-emerald-400 hover:text-emerald-300 hover:underline'

@@ -144,58 +144,57 @@ export async function runScheduledNotificationChecks() {
       }
 
       // =========================================================================
-      // 3. BUDGET THRESHOLD ALERTS (80% & 100%)
+      // 3. BUDGET THRESHOLD ALERTS (STRICTLY ONLY WHEN USER HAS SET LIMITS)
       // =========================================================================
       if (prefs.budgetAlerts) {
-        const budget80Tag = `budget-80-${user.id}-${currentYear}-${currentMonth}`;
-        const budget100Tag = `budget-100-${user.id}-${currentYear}-${currentMonth}`;
+        const userLimits = await prisma.categoryLimit.findMany({
+          where: {
+            userId: user.id,
+            limit: { gt: 0 }
+          }
+        });
 
-        if (!sentEventCache.has(budget80Tag) || !sentEventCache.has(budget100Tag)) {
-          const startOfMonth = new Date(currentYear, currentMonth, 1);
-          
-          const currentMonthExpenses = await prisma.expense.aggregate({
-            where: {
-              userId: user.id,
-              date: { gte: startOfMonth }
-            },
-            _sum: { amount: true }
-          });
+        // Strictly do NOT alert if user has not configured any category limits!
+        if (userLimits.length > 0) {
+          const totalConfiguredBudget = userLimits.reduce((sum, l) => sum + l.limit, 0);
 
-          const currentSpent = currentMonthExpenses._sum.amount || 0;
+          if (totalConfiguredBudget > 0) {
+            const budget80Tag = `budget-80-${user.id}-${currentYear}-${currentMonth}`;
+            const budget100Tag = `budget-100-${user.id}-${currentYear}-${currentMonth}`;
 
-          // Estimate monthly baseline from previous 3 months
-          const threeMonthsAgo = new Date(currentYear, currentMonth - 3, 1);
-          const pastExpenses = await prisma.expense.aggregate({
-            where: {
-              userId: user.id,
-              date: { gte: threeMonthsAgo, lt: startOfMonth }
-            },
-            _sum: { amount: true }
-          });
-
-          const monthlyBaseline = (pastExpenses._sum.amount || 0) / 3 || 1000;
-
-          if (monthlyBaseline > 0) {
-            const usageRatio = currentSpent / monthlyBaseline;
-
-            if (usageRatio >= 1.0 && !sentEventCache.has(budget100Tag)) {
-              sentEventCache.add(budget100Tag);
-              await createNotification({
-                userId: user.id,
-                type: 'BUDGET_ALERT',
-                title: '⚠️ Budget Exceeded',
-                message: `You've exceeded your monthly baseline budget (${userCurrency}${currentSpent.toFixed(2)} spent).`,
-                link: '/dashboard'
+            if (!sentEventCache.has(budget80Tag) || !sentEventCache.has(budget100Tag)) {
+              const startOfMonth = new Date(currentYear, currentMonth, 1);
+              
+              const currentMonthExpenses = await prisma.expense.aggregate({
+                where: {
+                  userId: user.id,
+                  date: { gte: startOfMonth }
+                },
+                _sum: { amount: true }
               });
-            } else if (usageRatio >= 0.8 && !sentEventCache.has(budget80Tag)) {
-              sentEventCache.add(budget80Tag);
-              await createNotification({
-                userId: user.id,
-                type: 'BUDGET_ALERT',
-                title: '💰 Cashio Budget Alert',
-                message: `You've reached 80% of your estimated monthly spending budget (${userCurrency}${currentSpent.toFixed(2)}).`,
-                link: '/dashboard'
-              });
+
+              const currentSpent = currentMonthExpenses._sum.amount || 0;
+              const usageRatio = currentSpent / totalConfiguredBudget;
+
+              if (usageRatio >= 1.0 && !sentEventCache.has(budget100Tag)) {
+                sentEventCache.add(budget100Tag);
+                await createNotification({
+                  userId: user.id,
+                  type: 'EXPENSE_ALERT',
+                  title: '🚨 Monthly Budget Exceeded',
+                  message: `High spending alert! You've exceeded your total monthly spending budget of ${userCurrency}${totalConfiguredBudget.toLocaleString()} (Total spent: ${userCurrency}${currentSpent.toLocaleString()}).`,
+                  link: '/profile'
+                });
+              } else if (usageRatio >= 0.8 && !sentEventCache.has(budget80Tag)) {
+                sentEventCache.add(budget80Tag);
+                await createNotification({
+                  userId: user.id,
+                  type: 'EXPENSE_ALERT',
+                  title: '⚠️ 80% Monthly Budget Alert',
+                  message: `Warning: You've reached ${(usageRatio * 100).toFixed(0)}% of your total monthly budget (${userCurrency}${currentSpent.toLocaleString()} of ${userCurrency}${totalConfiguredBudget.toLocaleString()}).`,
+                  link: '/profile'
+                });
+              }
             }
           }
         }

@@ -29,6 +29,7 @@ import { users as usersApi } from '../lib/api';
 import { format } from 'date-fns';
 import PasswordRequirements, { checkPasswordCriteria } from '../components/PasswordRequirements';
 import NotificationSettings from '../components/NotificationSettings';
+import CategoryLimitsSettings from '../components/CategoryLimitsSettings';
 import {
   SUPPORTED_CURRENCIES,
   getCurrencySymbol,
@@ -784,6 +785,9 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Category Spending Limits & High Spending Alerts Manager */}
+      <CategoryLimitsSettings />
 
       {/* Push Notification & Preferences Section */}
       <NotificationSettings />

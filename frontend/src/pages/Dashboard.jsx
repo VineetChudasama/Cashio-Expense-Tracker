@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { List, TrendingDown, Award, Sparkles, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { expenses, insights } from '../lib/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import StatCard from '../components/StatCard';
@@ -12,6 +13,7 @@ import { formatCurrency, getCurrencySymbol, CurrencyIcon } from '../utils/curren
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { isDark } = useTheme();
   const userCurrency = user?.currency || localStorage.getItem('flow_currency') || 'USD ($)';
   const currencySymbol = getCurrencySymbol(userCurrency);
 
@@ -94,13 +96,10 @@ const Dashboard = () => {
         <motion.div 
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-4 sm:p-5 lg:p-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center border-emerald-400/25 relative overflow-hidden"
+          className="glass-card p-4 sm:p-5 lg:p-6 border-emerald-400/25 relative overflow-hidden"
         >
-          <div className="p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-400/30 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.25)] shrink-0 self-start sm:self-center">
-            <Sparkles size={20} className="animate-pulse" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-0.5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
                 AI Intelligence
               </span>
@@ -176,10 +175,31 @@ const Dashboard = () => {
                   <XAxis type="number" stroke="#94A3B8" fontSize={10} tickFormatter={(val) => `${currencySymbol}${val}`} axisLine={false} tickLine={false} />
                   <YAxis dataKey="category" type="category" stroke="#CBD5E1" fontSize={11} width={75} tickLine={false} axisLine={false} />
                   <Tooltip 
-                    cursor={{ fill: 'rgba(16, 185, 129, 0.08)' }} 
+                    shared={false}
+                    cursor={false}
                     formatter={(value) => [formatCurrency(value, userCurrency), 'Amount']} 
+                    contentStyle={{ 
+                      backgroundColor: isDark ? '#031512' : '#FFFFFF', 
+                      borderColor: isDark ? 'rgba(16, 185, 129, 0.35)' : 'rgba(5, 150, 105, 0.25)', 
+                      borderRadius: '14px', 
+                      padding: '10px 14px',
+                      color: isDark ? '#FFFFFF' : '#07241E', 
+                      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+                      borderWidth: '1px'
+                    }}
+                    labelStyle={{ 
+                      color: isDark ? '#34D399' : '#059669', 
+                      fontWeight: '800', 
+                      marginBottom: '4px',
+                      fontSize: '12px'
+                    }}
+                    itemStyle={{ 
+                      color: isDark ? '#F1F5F9' : '#07241E', 
+                      fontWeight: '700',
+                      fontSize: '12px'
+                    }}
                   />
-                  <Bar dataKey="total" radius={[0, 8, 8, 0]}>
+                  <Bar dataKey="total" maxBarSize={28} radius={[0, 8, 8, 0]} className="cursor-pointer">
                     {summary.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'url(#barGrad1)' : 'url(#barGrad2)'} />
                     ))}

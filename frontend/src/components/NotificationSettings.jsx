@@ -251,7 +251,7 @@ const NotificationSettings = () => {
                 isDark ? 'bg-white/5 border-white/10 text-emerald-300' : 'bg-[#EAF5F2] border-[#CEE8E1] text-[#147D70]'
               }`}>
                 {browserEnv.isMobile ? <Smartphone size={12} /> : <Laptop size={12} />}
-                <span>{browserEnv.isMobile ? 'Mobile Device' : 'Desktop / Laptop'}</span>
+                <span>{browserEnv.deviceName || (browserEnv.isMobile ? 'Mobile Device' : 'Desktop / Laptop')}</span>
               </span>
             </div>
             <p className={`text-xs font-medium mt-0.5 ${isDark ? 'text-[#72C4B9]/80' : 'text-[#1F7669]'}`}>

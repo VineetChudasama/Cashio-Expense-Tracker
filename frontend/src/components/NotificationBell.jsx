@@ -167,17 +167,25 @@ const NotificationBell = () => {
           />
         </motion.div>
         
-        {/* Unread Badge Counter with gentle pop on hover */}
+        {/* Smart Compact Unread Badge Indicator */}
         {unreadCount > 0 && (
-          <motion.span
-            variants={{
-              idle: { scale: 1 },
-              hover: { scale: [1, 1.25, 1], transition: { duration: 0.35 } }
-            }}
-            className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 px-1 text-[10px] font-black text-white shadow-lg ring-2 ring-[#030F0D] dark:ring-[#030F0D]"
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute -top-0.5 -right-0.5 flex items-center justify-center pointer-events-none"
           >
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </motion.span>
+            {/* Ambient Pulse Glow */}
+            <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-40 animate-ping" />
+            
+            {/* Badge Capsule */}
+            <span className={`relative flex items-center justify-center rounded-full font-black text-white shadow-[0_2px_8px_rgba(16,185,129,0.45)] transition-all ${
+              unreadCount > 9
+                ? 'h-4 min-w-[18px] px-1 text-[9px] bg-gradient-to-r from-emerald-500 to-teal-500 border border-emerald-300/40 ring-1.5 ring-[var(--bg-primary)]'
+                : 'h-4 w-4 text-[9px] bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 border border-emerald-200/50 ring-1.5 ring-[var(--bg-primary)]'
+            }`}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          </motion.div>
         )}
       </motion.button>
 

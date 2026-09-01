@@ -39,8 +39,8 @@ export const AuthProvider = ({ children }) => {
     return res;
   };
 
-  const register = async (email, password, name) => {
-    const res = await authApi.register({ email, password, name });
+  const register = async (email, password, name, currency = 'USD ($)', categoryLimits = {}) => {
+    const res = await authApi.register({ email, password, name, currency, categoryLimits });
     if (res.success && res.data?.token) {
       setToken(res.data.token);
       setUser(res.data.user);

@@ -57,11 +57,21 @@ const Layout = () => {
       <header className={`md:hidden fixed top-0 left-0 right-0 h-16 backdrop-blur-2xl border-b flex items-center justify-between px-3 sm:px-4 z-40 shadow-xl ${
         isDark ? 'bg-[#030F0D]/90 border-white/10' : 'bg-[#E2ECE6]/95 border-emerald-600/20'
       }`}>
-        <div className="flex items-center gap-2 shrink-0 min-w-0">
-          <img src={logoUrl} alt="Cashio Logo" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.4)] shrink-0" />
-          <span className="text-lg font-black tracking-tight text-[var(--text-primary)] truncate">
-            Cash<span className="text-[#10B981] dark:text-emerald-400">io</span>
-          </span>
+        <div className="flex items-center gap-2.5 shrink-0 min-w-0">
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+            className="p-2 rounded-xl glass-btn text-[var(--text-primary)] shrink-0 active:scale-95 transition-transform cursor-pointer"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
+          </button>
+
+          <div className="flex items-center gap-2 min-w-0">
+            <img src={logoUrl} alt="Cashio Logo" className="w-7 h-7 sm:w-8 sm:h-8 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.4)] shrink-0" />
+            <span className="text-lg font-black tracking-tight text-[var(--text-primary)] truncate">
+              Cash<span className="text-[#10B981] dark:text-emerald-400">io</span>
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -86,14 +96,6 @@ const Layout = () => {
           >
             {user?.name?.charAt(0).toUpperCase() || <User size={14} />}
           </NavLink>
-
-          <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-            className="p-1.5 sm:p-2 rounded-xl glass-btn text-[var(--text-primary)] shrink-0"
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
         </div>
       </header>
 
@@ -256,12 +258,18 @@ const Layout = () => {
       </div>
       
       {/* Mobile backdrop overlay */}
-      {mobileMenuOpen && (
-        <div 
-          className="md:hidden fixed inset-0 glass-overlay z-40"
-          onClick={closeMobileMenu}
-        />
-      )}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="md:hidden fixed inset-0 bg-black/35 dark:bg-black/40 backdrop-blur-[6px] z-40 cursor-pointer"
+            onClick={closeMobileMenu}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

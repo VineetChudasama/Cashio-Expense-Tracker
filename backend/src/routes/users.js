@@ -558,6 +558,10 @@ router.delete('/account', async (req, res) => {
         });
       }
 
+      await tx.categoryLimit.deleteMany({
+        where: { userId: req.user.id }
+      });
+
       await tx.recurringPattern.deleteMany({
         where: { userId: req.user.id }
       });
@@ -581,6 +585,124 @@ router.delete('/account', async (req, res) => {
     });
   } catch (err) {
     console.error('[DELETE ACCOUNT ERROR]:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Category Spending Limits Routes
+router.get('/category-limits', async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    // Fetch all saved category limits
+    const limits = await prisma.categoryLimit.findMany({
+      where: { userId: req.user.id }
+    });
+
+    // Aggregate current month expenses grouped by category
+    const monthExpenses = await prisma.expense.groupBy({
+      by: ['category'],
+      where: {
+        userId: req.user.id,
+        date: {
+          gte: startOfMonth,
+          lte: endOfMonth
+        }
+      },
+      _sum: {
+        amount: true
+      }
+    });
+
+    const spentMap = {};
+    monthExpenses.forEach(item => {
+      spentMap[item.category] = item._sum.amount || 0;
+    });
+
+    const standardCategories = ['Food', 'Shopping', 'Travel', 'Entertainment', 'Transport', 'Rent', 'Utilities', 'Health', 'Education', 'Other'];
+    
+    const limitsMap = {};
+    limits.forEach(l => {
+      limitsMap[l.category] = l.limit;
+    });
+
+    const result = standardCategories.map(cat => {
+      const limitVal = limitsMap[cat] || 0;
+      const spentVal = spentMap[cat] || 0;
+      const percent = limitVal > 0 ? (spentVal / limitVal) * 100 : 0;
+
+      return {
+        category: cat,
+        limit: limitVal,
+        spent: spentVal,
+        remaining: Math.max(0, limitVal - spentVal),
+        percent: parseFloat(percent.toFixed(1)),
+        isExceeded: limitVal > 0 && spentVal > limitVal,
+        isWarning: limitVal > 0 && percent >= 80 && spentVal <= limitVal
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        limits: result,
+        rawLimits: limitsMap
+      }
+    });
+  } catch (err) {
+    console.error('[GET CATEGORY LIMITS ERROR]:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.put('/category-limits', async (req, res) => {
+  try {
+    const { limits } = req.body;
+    if (!limits || typeof limits !== 'object') {
+      return res.status(400).json({ success: false, error: 'Invalid limits object provided' });
+    }
+
+    const entries = Array.isArray(limits)
+      ? limits
+      : Object.entries(limits).map(([category, limit]) => ({ category, limit: parseFloat(limit) }));
+
+    const saved = [];
+    for (const item of entries) {
+      if (item.category && !isNaN(item.limit)) {
+        if (item.limit <= 0) {
+          // Remove limit if set to 0 or negative
+          await prisma.categoryLimit.deleteMany({
+            where: { userId: req.user.id, category: item.category }
+          });
+        } else {
+          const record = await prisma.categoryLimit.upsert({
+            where: {
+              userId_category: {
+                userId: req.user.id,
+                category: item.category
+              }
+            },
+            update: { limit: parseFloat(item.limit) },
+            create: {
+              userId: req.user.id,
+              category: item.category,
+              limit: parseFloat(item.limit)
+            }
+          });
+          saved.push(record);
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      data: saved,
+      message: 'Category spending limits successfully updated!'
+    });
+  } catch (err) {
+    console.error('[UPDATE CATEGORY LIMITS ERROR]:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

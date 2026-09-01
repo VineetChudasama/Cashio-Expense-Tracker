@@ -40,12 +40,17 @@ export function isPushNotificationSupported() {
  * Detects browser details, operating system, and specific push compatibility requirements
  */
 export async function detectBrowserEnvironment() {
+  const isSupported = isPushNotificationSupported();
+
   if (typeof window === 'undefined') {
     return {
       name: 'unknown',
       label: 'Unknown Browser',
       isIOS: false,
       isAndroid: false,
+      isMobile: false,
+      deviceType: 'desktop',
+      deviceName: 'Desktop Browser',
       isStandalone: false,
       isSupported: false,
       requiresPwa: false
@@ -53,12 +58,26 @@ export async function detectBrowserEnvironment() {
   }
 
   const ua = navigator.userAgent || '';
-  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const isAndroid = /Android/.test(ua);
-  const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  const platform = navigator.platform || '';
+  const maxTouchPoints = navigator.maxTouchPoints || 0;
+  const uaDataMobile = navigator.userAgentData?.mobile;
 
-  // In-App WebViews (Instagram, FB, TikTok, Twitter/X)
-  const isWebView = /(FBAN|FBAV|Instagram|Twitter|ByteLocale|Snapchat|Line)/i.test(ua);
+  // iOS Detection (iPhone, iPad, iPod, iPadOS on Safari)
+  const isIPhone = /iPhone|iPod/i.test(ua);
+  const isIPad = /iPad/i.test(ua) || (platform === 'MacIntel' && maxTouchPoints > 1);
+  const isIOS = isIPhone || isIPad;
+
+  // Android Detection (Phone vs Tablet)
+  const isAndroid = /Android/i.test(ua);
+  const isAndroidPhone = isAndroid && /Mobile/i.test(ua);
+  const isAndroidTablet = isAndroid && !/Mobile/i.test(ua);
+
+  // Standalone PWA Detection
+  const isStandalone = window.navigator.standalone === true || 
+                       (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+
+  // In-App WebViews (Instagram, FB, TikTok, Twitter/X, Snapchat, WeChat)
+  const isWebView = /(FBAN|FBAV|Instagram|Twitter|ByteLocale|Snapchat|Line|MicroMessenger)/i.test(ua);
 
   // Brave detection
   let isBrave = false;
@@ -71,15 +90,17 @@ export async function detectBrowserEnvironment() {
   }
 
   // Edge
-  const isEdge = /Edg\//.test(ua);
+  const isEdge = /Edg\//i.test(ua);
   // Firefox
-  const isFirefox = /Firefox\//.test(ua);
+  const isFirefox = /Firefox\//i.test(ua);
   // Opera
-  const isOpera = /OPR\//.test(ua);
-  // Safari Desktop
-  const isSafari = /^((?!chrome|android).)*safari/i.test(ua) && !isEdge && !isOpera;
+  const isOpera = /OPR\/|Opera/i.test(ua);
+  // Samsung Internet
+  const isSamsung = /SamsungBrowser/i.test(ua);
+  // Safari Desktop / Mobile
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua) && !isEdge && !isOpera && !isSamsung;
   // Chrome / Chromium
-  const isChrome = /Chrome\//.test(ua) && !isEdge && !isOpera && !isBrave;
+  const isChrome = /Chrome\//i.test(ua) && !isEdge && !isOpera && !isBrave && !isSamsung;
 
   let name = 'other';
   let label = 'Browser';
@@ -89,7 +110,10 @@ export async function detectBrowserEnvironment() {
     label = 'In-App Browser';
   } else if (isBrave) {
     name = 'brave';
-    label = 'Brave Browser';
+    label = 'Brave';
+  } else if (isSamsung) {
+    name = 'samsung';
+    label = 'Samsung Internet';
   } else if (isEdge) {
     name = 'edge';
     label = 'Microsoft Edge';
@@ -104,17 +128,58 @@ export async function detectBrowserEnvironment() {
     label = 'iOS Safari';
   } else if (isSafari) {
     name = 'safari';
-    label = 'Apple Safari';
+    label = 'Safari';
   } else if (isChrome) {
     name = 'chrome';
     label = 'Google Chrome';
   }
 
+  // Multi-factor Mobile & Tablet Detection
+  const isMobilePattern = /Mobile|Android|iP(hone|od|ad)|webOS|BlackBerry|IEMobile|Opera Mini|Windows Phone|Kindle|Silk/i.test(ua);
+  const isTouchScreen = maxTouchPoints > 0 || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  const isNarrowScreen = window.innerWidth <= 840;
+
+  const isMobile = Boolean(
+    uaDataMobile || 
+    isIOS || 
+    isAndroid || 
+    isMobilePattern || 
+    (isTouchScreen && isNarrowScreen)
+  );
+
+  const isTablet = isIPad || isAndroidTablet || (/Tablet/i.test(ua));
+
+  let deviceType = 'desktop';
+  if (isTablet) {
+    deviceType = 'tablet';
+  } else if (isMobile) {
+    deviceType = 'mobile';
+  }
+
+  // Precise friendly device name
+  let deviceBaseName = 'Computer';
+  if (isIPhone) {
+    deviceBaseName = 'iPhone';
+  } else if (isIPad) {
+    deviceBaseName = 'iPad';
+  } else if (isAndroidPhone) {
+    deviceBaseName = 'Android Phone';
+  } else if (isAndroidTablet) {
+    deviceBaseName = 'Android Tablet';
+  } else if (isMobile) {
+    deviceBaseName = 'Mobile Device';
+  } else if (/Macintosh|Mac OS X/i.test(ua)) {
+    deviceBaseName = 'Mac';
+  } else if (/Windows/i.test(ua)) {
+    deviceBaseName = 'Windows PC';
+  } else if (/Linux/i.test(ua)) {
+    deviceBaseName = 'Linux PC';
+  }
+
+  const deviceName = `${deviceBaseName} (${label})`;
+
   // iOS Safari requires adding to home screen (PWA) to enable Web Push (iOS 16.4+)
   const requiresPwa = isIOS && !isStandalone;
-  const isMobile = isIOS || isAndroid || /Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-  const deviceType = isMobile ? 'mobile' : 'desktop';
-  const deviceName = `${isMobile ? (isIOS ? 'iPhone / iPad' : isAndroid ? 'Android Phone' : 'Mobile') : 'Computer'} (${label})`;
 
   return {
     name,

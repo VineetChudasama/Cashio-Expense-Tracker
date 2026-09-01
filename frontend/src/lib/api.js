@@ -61,6 +61,8 @@ export const splits = {
 export const users = {
   getProfile: () => api.get('/users/profile').then(res => res.data),
   updateProfile: (data) => api.put('/users/profile', data).then(res => res.data),
+  getCategoryLimits: () => api.get('/users/category-limits').then(res => res.data),
+  updateCategoryLimits: (limits) => api.put('/users/category-limits', { limits }).then(res => res.data),
   convertCurrency: (data) => api.post('/users/convert-currency', data).then(res => res.data),
   sendPasswordOtp: (data) => api.post('/users/send-password-otp', data).then(res => res.data),
   changePasswordWithOtp: (data) => api.put('/users/change-password-with-otp', data).then(res => res.data),
