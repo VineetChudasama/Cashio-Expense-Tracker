@@ -8,7 +8,7 @@ const ProtectedRoute = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <CashioOrbitalLoader size="fullscreen" text="Authenticating..." />;
+    return <CashioOrbitalLoader size="fullscreen" text="Loading..." />;
   }
 
   if (!user) {

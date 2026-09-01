@@ -11,26 +11,26 @@
   "description": "Track daily expenses, split bills with friends, forecast future balances, and manage your financial universe with Cashio.",
   "icons": [
     {
-      "src": "/logo.png",
-      "type": "image/png",
+      "src": "/logo.jpg",
+      "type": "image/jpeg",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "/logo.png",
-      "type": "image/png",
+      "src": "/logo.jpg",
+      "type": "image/jpeg",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "/logo.png",
-      "type": "image/png",
+      "src": "/logo.jpg",
+      "type": "image/jpeg",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "/logo.png",
-      "type": "image/png",
+      "src": "/logo.jpg",
+      "type": "image/jpeg",
       "sizes": "512x512",
       "purpose": "maskable"
     },
