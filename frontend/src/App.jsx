@@ -33,12 +33,10 @@ const Profile = React.lazy(() => import('./pages/Profile'));
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
 
+import CashioOrbitalLoader from './components/CashioOrbitalLoader';
+
 function PageLoader() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
-      <div className="w-9 h-9 border-3 border-emerald-400/20 border-t-emerald-400 rounded-full animate-spin"></div>
-    </div>
-  );
+  return <CashioOrbitalLoader size="fullscreen" text="Loading..." />;
 }
 
 function App() {

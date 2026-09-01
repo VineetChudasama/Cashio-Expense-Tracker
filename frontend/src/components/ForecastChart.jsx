@@ -1,8 +1,10 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
+import { useAuth } from '../context/AuthContext';
+import { formatCurrency, getCurrencySymbol } from '../utils/currency';
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label, userCurrency }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-[#031512]/90 backdrop-blur-xl border border-white/10 border-t-emerald-400/40 p-3.5 rounded-2xl shadow-2xl">
@@ -13,7 +15,7 @@ const CustomTooltip = ({ active, payload, label }) => {
           <div key={index} className="flex items-center gap-2 text-xs">
             <div className="w-2 h-2 rounded-full shadow-sm" style={{ backgroundColor: entry.color }} />
             <span className="text-slate-400 capitalize font-medium">{entry.name}:</span>
-            <span className="font-bold text-white">${Number(entry.value || 0).toFixed(2)}</span>
+            <span className="font-bold text-white">{formatCurrency(entry.value || 0, userCurrency)}</span>
           </div>
         ))}
       </div>
@@ -23,6 +25,10 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const ForecastChart = ({ data }) => {
+  const { user } = useAuth();
+  const userCurrency = user?.currency || localStorage.getItem('flow_currency') || 'USD ($)';
+  const currencySymbol = getCurrencySymbol(userCurrency);
+
   return (
     <div className="h-80 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -55,12 +61,12 @@ const ForecastChart = ({ data }) => {
           <YAxis 
             stroke="#94A3B8" 
             fontSize={11}
-            tickFormatter={(val) => `$${val}`}
+            tickFormatter={(val) => `${currencySymbol}${val}`}
             tickMargin={10}
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip userCurrency={userCurrency} />} />
           <Area 
             type="monotone" 
             dataKey="actual" 

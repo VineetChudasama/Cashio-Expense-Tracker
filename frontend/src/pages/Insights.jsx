@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lightbulb, TrendingUp, PieChart, Calendar, DollarSign, Receipt, Sparkles } from 'lucide-react';
+import { Lightbulb, TrendingUp, PieChart, Calendar, Receipt, Sparkles } from 'lucide-react';
 import { insights } from '../lib/api';
-
-const iconMap = {
-  TrendingUp,
-  PieChart,
-  Calendar,
-  DollarSign,
-  Receipt
-};
+import { useAuth } from '../context/AuthContext';
+import { CurrencyIcon } from '../utils/currency';
 
 const Insights = () => {
+  const { user } = useAuth();
+  const userCurrency = user?.currency || localStorage.getItem('flow_currency') || 'USD ($)';
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const iconMap = {
+    TrendingUp,
+    PieChart,
+    Calendar,
+    DollarSign: (props) => <CurrencyIcon currency={userCurrency} {...props} />,
+    Receipt
+  };
 
   useEffect(() => {
     const fetchInsights = async () => {

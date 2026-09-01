@@ -9,30 +9,48 @@ const router = express.Router();
 const prisma = new PrismaClient();
 router.use(authMiddleware);
 
-router.post('/', [
-  body('expenseId').notEmpty(),
-  body('participants').isArray({ min: 1 })
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ success: false, error: errors.array() });
-
+router.post('/', async (req, res) => {
   try {
-    const { expenseId, participants } = req.body;
-    
-    const expense = await prisma.expense.findFirst({
-      where: { id: expenseId, userId: req.user.id }
-    });
-    if (!expense) return res.status(404).json({ success: false, error: 'Expense not found or unauthorized' });
+    let { expenseId, amount, category, description, date, participants } = req.body;
 
-    // Check if this expense has already been split
-    const existingSplit = await prisma.sharedExpense.findUnique({
-      where: { expenseId }
-    });
-    if (existingSplit) {
-      return res.status(400).json({
-        success: false,
-        error: 'This transaction has already been split. You can edit the existing split in the Splits tab or choose an unsplit transaction.'
+    if (!Array.isArray(participants) || participants.length === 0) {
+      return res.status(400).json({ success: false, error: 'At least one participant is required' });
+    }
+
+    let expense;
+    if (expenseId) {
+      expense = await prisma.expense.findFirst({
+        where: { id: expenseId, userId: req.user.id }
       });
+      if (!expense) return res.status(404).json({ success: false, error: 'Expense not found or unauthorized' });
+
+      // Check if this expense has already been split
+      const existingSplit = await prisma.sharedExpense.findUnique({
+        where: { expenseId }
+      });
+      if (existingSplit) {
+        return res.status(400).json({
+          success: false,
+          error: 'This transaction has already been split. You can edit the existing split in the Splits tab or choose an unsplit transaction.'
+        });
+      }
+    } else {
+      // Create the expense on-the-fly directly with sharing features!
+      const expenseAmount = parseFloat(amount);
+      if (!expenseAmount || isNaN(expenseAmount) || expenseAmount <= 0) {
+        return res.status(400).json({ success: false, error: 'A valid positive expense amount is required' });
+      }
+
+      expense = await prisma.expense.create({
+        data: {
+          userId: req.user.id,
+          amount: expenseAmount,
+          category: category || 'Other',
+          description: description ? description.trim() : 'Shared Expense',
+          date: date ? new Date(date) : new Date()
+        }
+      });
+      expenseId = expense.id;
     }
 
     const sharedExpense = await prisma.sharedExpense.create({
@@ -47,14 +65,22 @@ router.post('/', [
           }))
         }
       },
-      include: { participants: true }
+      include: {
+        expense: true,
+        createdBy: { select: { id: true, name: true, email: true } },
+        participants: {
+          include: { user: { select: { id: true, name: true, email: true } } }
+        }
+      }
     });
-    
+
     // Trigger split notification for each participant
     const creator = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { name: true }
+      select: { name: true, currency: true }
     });
+
+    const symbol = creator?.currency?.includes('₹') ? '₹' : creator?.currency?.includes('€') ? '€' : creator?.currency?.includes('£') ? '£' : '$';
 
     for (const p of participants) {
       if (p.userId !== req.user.id) {
@@ -62,7 +88,7 @@ router.post('/', [
           userId: p.userId,
           type: 'SPLIT_CREATED',
           title: 'New Expense Split',
-          message: `${creator?.name || 'A user'} split a $${expense.amount.toFixed(2)} bill (${expense.description || expense.category}) with you. Your share is $${parseFloat(p.amountOwed).toFixed(2)}.`,
+          message: `${creator?.name || 'A user'} split a ${symbol}${expense.amount.toFixed(2)} bill (${expense.description || expense.category}) with you. Your share is ${symbol}${parseFloat(p.amountOwed).toFixed(2)}.`,
           link: '/splits'
         });
       }
@@ -129,11 +155,27 @@ router.get('/balances', async (req, res) => {
         if (p.settled) continue;
         
         if (isCreator && p.userId !== req.user.id) {
-          const current = balances.get(p.userId) || { id: p.userId, name: p.user.name, email: p.user.email, amount: 0 };
+          const uName = p.user?.name || 'User';
+          const uEmail = p.user?.email || '';
+          const current = balances.get(p.userId) || {
+            id: p.userId,
+            name: uName,
+            email: uEmail,
+            user: { id: p.userId, name: uName, email: uEmail },
+            amount: 0
+          };
           current.amount += p.amountOwed;
           balances.set(p.userId, current);
         } else if (!isCreator && p.userId === req.user.id) {
-          const current = balances.get(se.createdByUserId) || { id: se.createdBy.id, name: se.createdBy.name, email: se.createdBy.email, amount: 0 };
+          const uName = se.createdBy?.name || 'User';
+          const uEmail = se.createdBy?.email || '';
+          const current = balances.get(se.createdByUserId) || {
+            id: se.createdByUserId,
+            name: uName,
+            email: uEmail,
+            user: { id: se.createdByUserId, name: uName, email: uEmail },
+            amount: 0
+          };
           current.amount -= p.amountOwed;
           balances.set(se.createdByUserId, current);
         }

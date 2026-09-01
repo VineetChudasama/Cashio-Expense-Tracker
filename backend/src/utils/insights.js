@@ -1,4 +1,4 @@
-export function generateInsights(expenses) {
+export function generateInsights(expenses, currencySymbol = '$') {
   if (!expenses || expenses.length < 5) {
     return [{
       type: 'placeholder',
@@ -8,6 +8,7 @@ export function generateInsights(expenses) {
     }];
   }
 
+  const sym = currencySymbol || '$';
   const insights = [];
   const now = new Date();
   
@@ -59,7 +60,7 @@ export function generateInsights(expenses) {
     insights.push({
       type: 'mom_change',
       title: 'Month-over-month Spending',
-      description: `You spent ${percentChange}% ${direction} this month compared to last month ($${currentMonthTotal.toFixed(2)} vs $${prevMonthTotal.toFixed(2)})`,
+      description: `You spent ${percentChange}% ${direction} this month compared to last month (${sym}${currentMonthTotal.toFixed(2)} vs ${sym}${prevMonthTotal.toFixed(2)})`,
       data: { currentMonthTotal, prevMonthTotal, percentChange, diff }
     });
   }
@@ -72,7 +73,7 @@ export function generateInsights(expenses) {
     insights.push({
       type: 'top_category',
       title: 'Top Spending Category',
-      description: `Your top spending category is ${topCategory} at ${percent}% of total spending ($${topAmount.toFixed(2)})`,
+      description: `Your top spending category is ${topCategory} at ${percent}% of total spending (${sym}${topAmount.toFixed(2)})`,
       data: { category: topCategory, amount: topAmount, percent }
     });
   }
@@ -83,7 +84,7 @@ export function generateInsights(expenses) {
     insights.push({
       type: 'weekend_vs_weekday',
       title: 'Weekend vs Weekday Spending',
-      description: `You spend an average of $${weekendAvg} per transaction on weekends vs $${weekdayAvg} on weekdays`,
+      description: `You spend an average of ${sym}${weekendAvg} per transaction on weekends vs ${sym}${weekdayAvg} on weekdays`,
       data: { weekendAvg: parseFloat(weekendAvg), weekdayAvg: parseFloat(weekdayAvg) }
     });
   }
@@ -96,7 +97,7 @@ export function generateInsights(expenses) {
     insights.push({
       type: 'daily_average',
       title: 'Daily Average Spending',
-      description: `You spend an average of $${dailyAvg} per day`,
+      description: `You spend an average of ${sym}${dailyAvg} per day`,
       data: { dailyAvg: parseFloat(dailyAvg), daysTracked, totalSpend }
     });
   }
@@ -104,7 +105,7 @@ export function generateInsights(expenses) {
   insights.push({
     type: 'largest_expense',
     title: 'Largest Single Expense',
-    description: `Your largest expense was $${largestExpense.amount.toFixed(2)} on ${largestExpense.category} ${largestExpense.description ? '— ' + largestExpense.description : ''}`,
+    description: `Your largest expense was ${sym}${largestExpense.amount.toFixed(2)} on ${largestExpense.category} ${largestExpense.description ? '— ' + largestExpense.description : ''}`,
     data: { amount: largestExpense.amount, category: largestExpense.category, description: largestExpense.description, date: largestExpense.date }
   });
 

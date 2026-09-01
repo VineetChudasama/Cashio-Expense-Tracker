@@ -4,8 +4,12 @@ import { RefreshCw, TrendingUp, Sparkles } from 'lucide-react';
 import { forecast } from '../lib/api';
 import ForecastChart from '../components/ForecastChart';
 import CategoryBadge from '../components/CategoryBadge';
+import { useAuth } from '../context/AuthContext';
+import { formatCurrency } from '../utils/currency';
 
 const Forecast = () => {
+  const { user } = useAuth();
+  const userCurrency = user?.currency || localStorage.getItem('flow_currency') || 'USD ($)';
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isDetecting, setIsDetecting] = useState(false);
@@ -150,7 +154,7 @@ const Forecast = () => {
               >
                 <div className="flex justify-between items-start mb-3">
                   <CategoryBadge category={pattern.category} />
-                  <span className="font-black text-base text-white">${pattern.avgAmount.toFixed(2)}</span>
+                  <span className="font-black text-base text-white">{formatCurrency(pattern.avgAmount, userCurrency)}</span>
                 </div>
                 <h3 className="font-bold text-sm text-white truncate mb-1" title={pattern.description}>
                   {pattern.description || `${pattern.category} Cycle`}

@@ -20,10 +20,60 @@ try {
 }
 
 /**
+ * In-memory cooldown tracker to avoid notification fatigue
+ * Prevents automated notifications from firing too frequently (minimum 45-min gap between automated alerts)
+ */
+const userLastAutomatedPushMap = new Map();
+const AUTOMATED_COOLDOWN_MS = 45 * 60 * 1000; // 45 minutes
+
+/**
  * Returns the public VAPID key to the frontend
  */
 export function getVapidPublicKey() {
   return process.env.VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
+}
+
+/**
+ * Parses user-agent to reliably identify device category, OS, and browser
+ */
+export function parseDeviceFromUserAgent(ua = '') {
+  if (!ua || typeof ua !== 'string') {
+    return {
+      deviceType: 'desktop',
+      deviceName: 'Desktop Browser',
+      os: 'Unknown',
+      browser: 'Browser',
+      isMobile: false
+    };
+  }
+
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (ua.includes('Macintosh') && ua.includes('Touch'));
+  const isAndroid = /Android/i.test(ua);
+  const isMobile = isIOS || isAndroid || /Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+
+  let os = 'Unknown OS';
+  if (/Windows/i.test(ua)) os = 'Windows';
+  else if (isIOS) os = 'iOS';
+  else if (isAndroid) os = 'Android';
+  else if (/Macintosh|Mac OS X/i.test(ua)) os = 'macOS';
+  else if (/Linux/i.test(ua)) os = 'Linux';
+
+  let browser = 'Browser';
+  if (/Edg\//i.test(ua)) browser = 'Edge';
+  else if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) browser = 'Chrome';
+  else if (/Firefox\//i.test(ua)) browser = 'Firefox';
+  else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
+
+  const deviceType = isMobile ? 'mobile' : 'desktop';
+  const deviceName = `${os} (${browser})`;
+
+  return {
+    deviceType,
+    deviceName,
+    os,
+    browser,
+    isMobile
+  };
 }
 
 /**
@@ -82,38 +132,60 @@ export async function sendPushNotification({ subscription, title, body, icon = '
 }
 
 /**
- * Sends a push notification to all active devices of a given user, respecting user preferences
+ * Sends a push notification to active devices of a given user, respecting user preferences,
+ * separate mobile/desktop channels, target device filtering, and smart throttling cooldowns.
  */
-export async function sendPushToUser({ userId, type = 'SYSTEM', title, body, icon = '/logo.png', badge = '/logo.png', tag, data = {}, actions = [] }) {
+export async function sendPushToUser({
+  userId,
+  type = 'SYSTEM',
+  title,
+  body,
+  icon = '/logo.png',
+  badge = '/logo.png',
+  tag,
+  data = {},
+  actions = [],
+  targetEndpoint = null,
+  targetDeviceType = null,
+  isAutomated = false
+}) {
   if (!userId) return { success: false, error: 'User ID is required' };
 
   try {
-    // 1. Check user notification preferences
+    // 1. Throttling Cooldown for automated notifications
+    if (isAutomated) {
+      const now = Date.now();
+      const lastPush = userLastAutomatedPushMap.get(userId);
+      if (lastPush && (now - lastPush < AUTOMATED_COOLDOWN_MS)) {
+        const remainingMin = Math.ceil((AUTOMATED_COOLDOWN_MS - (now - lastPush)) / 60000);
+        console.log(`[WEB-PUSH THROTTLED] Skipped automated push for user ${userId} to avoid notification fatigue (Cooldown: ${remainingMin}m remaining)`);
+        return { success: true, skipped: true, reason: 'rate_limited_cooldown' };
+      }
+      userLastAutomatedPushMap.set(userId, now);
+    }
+
+    // 2. Check user notification preferences
     const preferences = await prisma.notificationPreference.findUnique({
       where: { userId }
     });
 
     if (preferences) {
-      if (type === 'BUDGET_ALERT' && !preferences.budgetAlerts) {
-        console.log(`[WEB-PUSH] Skipped BUDGET_ALERT for user ${userId} per preferences`);
-        return { success: true, skipped: true, reason: 'preference_disabled' };
+      if (type === 'BUDGET_ALERT' && preferences.budgetAlerts === false) {
+        return { success: true, skipped: true, reason: 'preference_budgetAlerts_disabled' };
       }
-      if (type === 'EXPENSE_REMINDER' && !preferences.expenseReminders) {
-        console.log(`[WEB-PUSH] Skipped EXPENSE_REMINDER for user ${userId} per preferences`);
-        return { success: true, skipped: true, reason: 'preference_disabled' };
+      if (type === 'EXPENSE_REMINDER' && preferences.expenseReminders === false) {
+        return { success: true, skipped: true, reason: 'preference_expenseReminders_disabled' };
       }
-      if (type === 'WEEKLY_SUMMARY' && !preferences.weeklySummary) {
-        console.log(`[WEB-PUSH] Skipped WEEKLY_SUMMARY for user ${userId} per preferences`);
-        return { success: true, skipped: true, reason: 'preference_disabled' };
+      if (type === 'WEEKLY_SUMMARY' && preferences.weeklySummary === false) {
+        return { success: true, skipped: true, reason: 'preference_weeklySummary_disabled' };
       }
-      if (type === 'SAVINGS_GOAL' && !preferences.savingsGoalUpdates) {
-        console.log(`[WEB-PUSH] Skipped SAVINGS_GOAL for user ${userId} per preferences`);
-        return { success: true, skipped: true, reason: 'preference_disabled' };
+      if (type === 'SAVINGS_GOAL' && preferences.savingsGoalUpdates === false) {
+        return { success: true, skipped: true, reason: 'preference_savingsGoalUpdates_disabled' };
       }
     }
 
-    // 2. Fetch active push subscriptions for this user
-    const subscriptions = await prisma.pushSubscription.findMany({
+    // 3. Fetch active push subscriptions for this user
+    let subscriptions = await prisma.pushSubscription.findMany({
       where: { userId }
     });
 
@@ -121,21 +193,51 @@ export async function sendPushToUser({ userId, type = 'SYSTEM', title, body, ico
       return { success: true, delivered: 0, message: 'No active push subscriptions found for user' };
     }
 
-    // 3. Dispatch push to all active endpoints
+    // 4. Target endpoint filtering (e.g. testing from specific device)
+    if (targetEndpoint) {
+      const targetSub = subscriptions.find(s => s.endpoint === targetEndpoint);
+      if (targetSub) {
+        subscriptions = [targetSub];
+      }
+    }
+
+    // 5. Separate device filtering (Mobile vs Desktop push channels)
+    // Subscriptions are classified by User-Agent
+    subscriptions = subscriptions.filter(sub => {
+      const { deviceType } = parseDeviceFromUserAgent(sub.userAgent);
+
+      // Target device filter if requested
+      if (targetDeviceType && deviceType !== targetDeviceType) {
+        return false;
+      }
+
+      return true;
+    });
+
+    if (subscriptions.length === 0) {
+      return { success: true, delivered: 0, message: 'No matching device subscriptions found' };
+    }
+
+    // 6. Dispatch push to filtered endpoints
     const results = await Promise.allSettled(
-      subscriptions.map(sub => sendPushNotification({
-        subscription: sub,
-        title,
-        body,
-        icon,
-        badge,
-        tag: tag || `cashio-${type.toLowerCase()}-${Date.now()}`,
-        data: {
-          ...data,
-          type
-        },
-        actions
-      }))
+      subscriptions.map(sub => {
+        const { deviceType, deviceName } = parseDeviceFromUserAgent(sub.userAgent);
+        return sendPushNotification({
+          subscription: sub,
+          title,
+          body,
+          icon,
+          badge,
+          tag: tag || `cashio-${type.toLowerCase()}-${Date.now()}`,
+          data: {
+            ...data,
+            type,
+            deviceType,
+            deviceName
+          },
+          actions
+        });
+      })
     );
 
     const deliveredCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;

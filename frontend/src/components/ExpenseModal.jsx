@@ -3,10 +3,16 @@ import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { expenses } from '../lib/api';
 import { format } from 'date-fns';
+import { useAuth } from '../context/AuthContext';
+import { getCurrencySymbol, CurrencyIcon } from '../utils/currency';
 
 const categories = ['Food', 'Rent', 'Transport', 'Entertainment', 'Utilities', 'Shopping', 'Health', 'Education', 'Travel', 'Other'];
 
 const ExpenseModal = ({ expense, onClose }) => {
+  const { user } = useAuth();
+  const userCurrency = user?.currency || localStorage.getItem('flow_currency') || 'USD ($)';
+  const currencySymbol = getCurrencySymbol(userCurrency);
+
   const [formData, setFormData] = useState({
     amount: '',
     category: 'Other',
@@ -81,7 +87,10 @@ const ExpenseModal = ({ expense, onClose }) => {
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           <div>
-            <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">Amount ($)</label>
+            <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <CurrencyIcon currency={userCurrency} size={13} className="text-emerald-400" />
+              <span>Amount ({currencySymbol})</span>
+            </label>
             <input
               type="number"
               name="amount"

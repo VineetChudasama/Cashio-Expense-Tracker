@@ -1,0 +1,172 @@
+/* Cashio 3D Orbital Loader Styles */
+
+.cashio-loader-container {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+/* Central Logo Breathing Animation */
+@keyframes logoBreathing {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 14px rgba(114, 196, 185, 0.4)) drop-shadow(0 0 28px rgba(16, 185, 129, 0.25));
+  }
+  50% {
+    transform: scale(1.03);
+    filter: drop-shadow(0 0 22px rgba(114, 196, 185, 0.6)) drop-shadow(0 0 40px rgba(16, 185, 129, 0.4));
+  }
+}
+
+.cashio-logo-animated {
+  animation: logoBreathing 3.4s ease-in-out infinite;
+  transform-origin: center center;
+  will-change: transform, filter;
+}
+
+/* Background Ambient Radial Pulse */
+@keyframes ambientGlowPulse {
+  0%, 100% {
+    opacity: 0.65;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.06);
+  }
+}
+
+.cashio-ambient-glow {
+  animation: ambientGlowPulse 3.8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* 3 Equal Symmetrical 3D Orbital Tilt Planes (60° separation) */
+.orbit-wrapper-1 {
+  transform: rotateZ(0deg) rotateX(68deg);
+  transform-style: preserve-3d;
+}
+
+.orbit-wrapper-2 {
+  transform: rotateZ(60deg) rotateX(68deg);
+  transform-style: preserve-3d;
+}
+
+.orbit-wrapper-3 {
+  transform: rotateZ(-60deg) rotateX(68deg);
+  transform-style: preserve-3d;
+}
+
+/* Orbit Spinning Animations */
+@keyframes spinRing {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.orbit-spin-1 {
+  animation: spinRing var(--orbit-duration-1, 6.2s) linear infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.orbit-spin-2 {
+  animation: spinRing var(--orbit-duration-2, 7.8s) linear infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.orbit-spin-3 {
+  animation: spinRing var(--orbit-duration-3, 9.4s) linear infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* Atom Depth & Lighting Modulation (Stays locked on the ring line) */
+@keyframes atomDepthCycle {
+  0%, 100% {
+    /* Closest / Frontmost point */
+    transform: translate(-50%, -50%) scale(1.24);
+    opacity: 1;
+    filter: drop-shadow(0 0 7px #72C4B9) drop-shadow(0 0 14px #1F7669) brightness(1.25);
+    z-index: 30;
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(0.96);
+    opacity: 0.82;
+    filter: drop-shadow(0 0 4px #72C4B9) brightness(1.02);
+    z-index: 20;
+  }
+  50% {
+    /* Furthest / Rear point behind logo */
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0.42;
+    filter: drop-shadow(0 0 2px #095348) brightness(0.68);
+    z-index: 2;
+  }
+  75% {
+    transform: translate(-50%, -50%) scale(0.96);
+    opacity: 0.82;
+    filter: drop-shadow(0 0 4px #72C4B9) brightness(1.02);
+    z-index: 18;
+  }
+}
+
+.cashio-atom {
+  animation: atomDepthCycle var(--atom-cycle-duration, 6.2s) linear infinite;
+  animation-delay: var(--atom-delay, 0s);
+  will-change: transform, opacity, filter;
+}
+
+/* Sequential Loading Wave Dots */
+@keyframes dotWave {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+    background-color: #1F7669;
+    box-shadow: 0 0 0px transparent;
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.3);
+    background-color: #72C4B9;
+    box-shadow: 0 0 8px #72C4B9, 0 0 14px rgba(114, 196, 185, 0.6);
+  }
+  70% {
+    opacity: 0.55;
+    transform: scale(1);
+    background-color: #095348;
+    box-shadow: 0 0 3px rgba(114, 196, 185, 0.3);
+  }
+}
+
+.cashio-wave-dot {
+  animation: dotWave 1.5s ease-in-out infinite;
+  will-change: transform, opacity, background-color, box-shadow;
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .orbit-spin-1,
+  .orbit-spin-2,
+  .orbit-spin-3,
+  .cashio-atom,
+  .cashio-logo-animated,
+  .cashio-ambient-glow,
+  .cashio-wave-dot {
+    animation: none !important;
+  }
+  
+  .cashio-atom {
+    transform: translate(-50%, -50%) scale(1) !important;
+    opacity: 0.9 !important;
+    filter: drop-shadow(0 0 6px #72C4B9) !important;
+  }
+  
+  .cashio-wave-dot {
+    opacity: 0.8 !important;
+    background-color: #72C4B9 !important;
+  }
+}

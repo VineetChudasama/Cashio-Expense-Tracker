@@ -112,13 +112,18 @@ export async function detectBrowserEnvironment() {
 
   // iOS Safari requires adding to home screen (PWA) to enable Web Push (iOS 16.4+)
   const requiresPwa = isIOS && !isStandalone;
-  const isSupported = isPushNotificationSupported() || (isIOS && !isStandalone);
+  const isMobile = isIOS || isAndroid || /Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const deviceType = isMobile ? 'mobile' : 'desktop';
+  const deviceName = `${isMobile ? (isIOS ? 'iPhone / iPad' : isAndroid ? 'Android Phone' : 'Mobile') : 'Computer'} (${label})`;
 
   return {
     name,
     label,
     isIOS,
     isAndroid,
+    isMobile,
+    deviceType,
+    deviceName,
     isStandalone,
     isSupported,
     requiresPwa,

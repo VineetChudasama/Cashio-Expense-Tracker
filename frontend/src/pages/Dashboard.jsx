@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, List, TrendingDown, Award, Sparkles, ArrowRight } from 'lucide-react';
+import { List, TrendingDown, Award, Sparkles, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { expenses, insights } from '../lib/api';
@@ -8,9 +8,13 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import StatCard from '../components/StatCard';
 import CategoryBadge from '../components/CategoryBadge';
 import { format } from 'date-fns';
+import { formatCurrency, getCurrencySymbol, CurrencyIcon } from '../utils/currency';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const userCurrency = user?.currency || localStorage.getItem('flow_currency') || 'USD ($)';
+  const currencySymbol = getCurrencySymbol(userCurrency);
+
   const [recentExpenses, setRecentExpenses] = useState([]);
   const [summary, setSummary] = useState([]);
   const [topInsight, setTopInsight] = useState(null);
@@ -58,15 +62,6 @@ const Dashboard = () => {
     show: { opacity: 1, y: 0 }
   };
 
-  if (loading) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center gap-3 py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-emerald-400"></div>
-        <p className="text-xs text-slate-400 font-medium">Loading your dashboard...</p>
-      </div>
-    );
-  }
-
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -74,8 +69,16 @@ const Dashboard = () => {
     return 'Good evening';
   };
 
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-emerald-400"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto pb-12 px-1 sm:px-0">
+    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto pb-10">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 sm:gap-3">
         <div>
@@ -116,9 +119,9 @@ const Dashboard = () => {
         className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5"
       >
         <StatCard 
-          icon={DollarSign} 
+          icon={(props) => <CurrencyIcon currency={userCurrency} {...props} />} 
           label="Total Spent" 
-          value={`$${totalSpent.toFixed(2)}`} 
+          value={formatCurrency(totalSpent, userCurrency)} 
           color="emerald" 
           variants={itemVariants}
         />
@@ -132,7 +135,7 @@ const Dashboard = () => {
         <StatCard 
           icon={TrendingDown} 
           label="Daily Average" 
-          value={`$${dailyAverage.toFixed(2)}`} 
+          value={formatCurrency(dailyAverage, userCurrency)} 
           color="amber" 
           variants={itemVariants}
         />
@@ -140,7 +143,7 @@ const Dashboard = () => {
           icon={Award} 
           label="Top Category" 
           value={topCategory ? topCategory.category : 'None'} 
-          subtext={topCategory ? `$${topCategory.total.toFixed(2)} total` : null}
+          subtext={topCategory ? `${formatCurrency(topCategory.total, userCurrency)} total` : null}
           color="teal" 
           variants={itemVariants}
         />
@@ -170,11 +173,11 @@ const Dashboard = () => {
                       <stop offset="100%" stopColor="#2DD4BF" />
                     </linearGradient>
                   </defs>
-                  <XAxis type="number" stroke="#94A3B8" fontSize={10} tickFormatter={(val) => `$${val}`} axisLine={false} tickLine={false} />
+                  <XAxis type="number" stroke="#94A3B8" fontSize={10} tickFormatter={(val) => `${currencySymbol}${val}`} axisLine={false} tickLine={false} />
                   <YAxis dataKey="category" type="category" stroke="#CBD5E1" fontSize={11} width={75} tickLine={false} axisLine={false} />
                   <Tooltip 
                     cursor={{ fill: 'rgba(16, 185, 129, 0.08)' }} 
-                    formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Amount']} 
+                    formatter={(value) => [formatCurrency(value, userCurrency), 'Amount']} 
                   />
                   <Bar dataKey="total" radius={[0, 8, 8, 0]}>
                     {summary.map((entry, index) => (
@@ -221,7 +224,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="font-black text-xs sm:text-sm text-white shrink-0">
-                    ${expense.amount.toFixed(2)}
+                    {formatCurrency(expense.amount, userCurrency)}
                   </div>
                 </div>
               ))

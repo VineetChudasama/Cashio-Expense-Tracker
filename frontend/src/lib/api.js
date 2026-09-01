@@ -61,11 +61,12 @@ export const splits = {
 export const users = {
   getProfile: () => api.get('/users/profile').then(res => res.data),
   updateProfile: (data) => api.put('/users/profile', data).then(res => res.data),
+  convertCurrency: (data) => api.post('/users/convert-currency', data).then(res => res.data),
   sendPasswordOtp: (data) => api.post('/users/send-password-otp', data).then(res => res.data),
   changePasswordWithOtp: (data) => api.put('/users/change-password-with-otp', data).then(res => res.data),
   sendEmailOtp: (data) => api.post('/users/send-email-otp', data).then(res => res.data),
   changeEmailWithOtp: (data) => api.put('/users/change-email-with-otp', data).then(res => res.data),
-  search: (email) => api.get(`/users/search?email=${encodeURIComponent(email)}`).then(res => res.data),
+  search: (query) => api.get(`/users/search?query=${encodeURIComponent(query)}`).then(res => res.data),
   deleteAccount: (data) => api.delete('/users/account', { data }).then(res => res.data),
 };
 
@@ -80,7 +81,7 @@ export const notifications = {
   updatePreferences: (data) => api.put('/notifications/preferences', data).then(res => res.data),
   subscribePush: (data) => api.post('/notifications/subscribe', data).then(res => res.data),
   unsubscribePush: (data) => api.post('/notifications/unsubscribe', data).then(res => res.data),
-  sendTestPush: () => api.post('/notifications/test').then(res => res.data),
+  sendTestPush: (data = {}) => api.post('/notifications/test', data).then(res => res.data),
 };
 
 export const insights = {

@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.js';
-import { getVapidPublicKey, sendPushToUser } from '../utils/webPush.js';
+import { getVapidPublicKey, sendPushToUser, parseDeviceFromUserAgent } from '../utils/webPush.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -27,7 +27,7 @@ router.use(authMiddleware);
 
 /**
  * GET /api/notifications/preferences
- * Returns the user's notification preferences (creates defaults if none exist)
+ * Returns the user's notification preferences and active registered devices
  */
 router.get('/preferences', async (req, res) => {
   try {
@@ -47,16 +47,32 @@ router.get('/preferences', async (req, res) => {
       });
     }
 
-    const subscriptionsCount = await prisma.pushSubscription.count({
-      where: { userId: req.user.id }
+    const subscriptions = await prisma.pushSubscription.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Classify user's registered devices
+    const devices = subscriptions.map(sub => {
+      const parsed = parseDeviceFromUserAgent(sub.userAgent);
+      return {
+        id: sub.id,
+        endpoint: sub.endpoint,
+        deviceType: parsed.deviceType,
+        deviceName: parsed.deviceName,
+        os: parsed.os,
+        browser: parsed.browser,
+        createdAt: sub.createdAt
+      };
     });
 
     res.json({
       success: true,
       data: {
         preferences,
-        isSubscribed: subscriptionsCount > 0,
-        subscriptionsCount
+        isSubscribed: subscriptions.length > 0,
+        subscriptionsCount: subscriptions.length,
+        devices
       }
     });
   } catch (err) {
@@ -71,7 +87,12 @@ router.get('/preferences', async (req, res) => {
  */
 router.put('/preferences', async (req, res) => {
   try {
-    const { budgetAlerts, expenseReminders, weeklySummary, savingsGoalUpdates } = req.body;
+    const {
+      budgetAlerts,
+      expenseReminders,
+      weeklySummary,
+      savingsGoalUpdates
+    } = req.body;
 
     const preferences = await prisma.notificationPreference.upsert({
       where: { userId: req.user.id },
@@ -116,27 +137,35 @@ router.post('/subscribe', async (req, res) => {
       });
     }
 
+    const effectiveUserAgent = userAgent || req.headers['user-agent'] || null;
+
     const subscription = await prisma.pushSubscription.upsert({
       where: { endpoint },
       update: {
         userId: req.user.id,
         p256dh: keys.p256dh,
         auth: keys.auth,
-        userAgent: userAgent || req.headers['user-agent'] || null
+        userAgent: effectiveUserAgent
       },
       create: {
         userId: req.user.id,
         endpoint,
         p256dh: keys.p256dh,
         auth: keys.auth,
-        userAgent: userAgent || req.headers['user-agent'] || null
+        userAgent: effectiveUserAgent
       }
     });
 
+    const parsedDevice = parseDeviceFromUserAgent(effectiveUserAgent);
+
     res.json({
       success: true,
-      message: 'Push notification subscription registered successfully',
-      data: { id: subscription.id }
+      message: `Push notification subscription registered successfully for ${parsedDevice.deviceName}`,
+      data: {
+        id: subscription.id,
+        deviceType: parsedDevice.deviceType,
+        deviceName: parsedDevice.deviceName
+      }
     });
   } catch (err) {
     console.error('[NOTIFICATIONS SUBSCRIBE ERROR]:', err);
@@ -177,35 +206,53 @@ router.post('/unsubscribe', async (req, res) => {
 
 /**
  * POST /api/notifications/test
- * Sends a test Web Push notification to the authenticated user's registered devices
+ * Detects whether user is currently on mobile or laptop browser and sends targeted test notification
  */
 router.post('/test', async (req, res) => {
   try {
+    const clientUa = req.body?.userAgent || req.headers['user-agent'] || '';
+    const clientEndpoint = req.body?.endpoint || null;
+    const clientDeviceType = req.body?.deviceType || null;
+
+    const { deviceType, deviceName } = parseDeviceFromUserAgent(clientUa);
+    const effectiveDeviceType = clientDeviceType || deviceType;
+    const isMobile = effectiveDeviceType === 'mobile';
+
+    const title = isMobile ? '📱 Cashio Mobile Notification' : '💻 Cashio Desktop Notification';
+    const body = `Notifications are verified and working on your ${isMobile ? 'phone' : 'computer'} (${deviceName})!`;
+
     const result = await sendPushToUser({
       userId: req.user.id,
       type: 'SYSTEM',
-      title: '💚 Cashio Notifications',
-      body: 'Notifications are working correctly!',
+      title,
+      body,
       icon: '/logo.png',
       badge: '/logo.png',
       tag: `cashio-test-${Date.now()}`,
+      targetEndpoint: clientEndpoint,
       data: {
         url: '/dashboard',
-        type: 'TEST'
+        type: 'TEST',
+        deviceType: effectiveDeviceType,
+        deviceName
       }
     });
 
     if (result.delivered === 0 && result.total === 0) {
       return res.status(400).json({
         success: false,
-        error: 'No active push subscriptions found on this account. Please enable notifications in your browser first.'
+        error: `No active push subscription found for this ${effectiveDeviceType === 'mobile' ? 'mobile device' : 'desktop browser'}. Please enable notifications first.`
       });
     }
 
     res.json({
       success: true,
-      message: 'Test notification dispatched successfully!',
-      data: result
+      message: `Test notification sent to your ${effectiveDeviceType === 'mobile' ? 'mobile phone' : 'computer'} (${deviceName})!`,
+      data: {
+        ...result,
+        deviceType: effectiveDeviceType,
+        deviceName
+      }
     });
   } catch (err) {
     console.error('[NOTIFICATIONS TEST ERROR]:', err);
@@ -229,7 +276,18 @@ router.get('/', async (req, res) => {
     } else if (filter === 'splits') {
       whereClause.type = { in: ['SPLIT_CREATED', 'SPLIT_SETTLED'] };
     } else if (filter === 'alerts') {
-      whereClause.type = { in: ['EXPENSE_ALERT', 'SECURITY', 'SYSTEM', 'BUDGET_ALERT', 'EXPENSE_REMINDER', 'WEEKLY_SUMMARY', 'SAVINGS_GOAL'] };
+      whereClause.type = {
+        in: [
+          'EXPENSE_ALERT',
+          'SECURITY',
+          'SYSTEM',
+          'BUDGET_ALERT',
+          'EXPENSE_REMINDER',
+          'WEEKLY_SUMMARY',
+          'SAVINGS_GOAL',
+          'RECURRING_EXPENSE'
+        ]
+      };
     }
 
     const [notifications, unreadCount, total] = await Promise.all([
@@ -377,4 +435,3 @@ router.delete('/clear-all', async (req, res) => {
 });
 
 export default router;
-

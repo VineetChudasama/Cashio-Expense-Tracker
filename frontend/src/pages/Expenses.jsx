@@ -17,8 +17,12 @@ import {
 import { expenses } from '../lib/api';
 import ExpenseModal from '../components/ExpenseModal';
 import CategoryBadge from '../components/CategoryBadge';
+import { useAuth } from '../context/AuthContext';
+import { formatCurrency, getCurrencySymbol, CurrencyIcon } from '../utils/currency';
 
 const Expenses = () => {
+  const { user } = useAuth();
+  const userCurrency = user?.currency || localStorage.getItem('flow_currency') || 'USD ($)';
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -313,7 +317,7 @@ const Expenses = () => {
                   <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/[0.06] shrink-0">
                     <div className="text-left sm:text-right">
                       <span className="font-black text-base sm:text-lg text-white">
-                        ${Number(expense.amount).toFixed(2)}
+                        {formatCurrency(expense.amount, userCurrency)}
                       </span>
                     </div>
                     

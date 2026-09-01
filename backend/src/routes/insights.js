@@ -9,12 +9,19 @@ router.use(authMiddleware);
 
 router.get('/', async (req, res) => {
   try {
-    const expenses = await prisma.expense.findMany({
-      where: { userId: req.user.id },
-      orderBy: { date: 'desc' }
-    });
-    
-    const insights = generateInsights(expenses);
+    const [user, expenses] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { currency: true }
+      }),
+      prisma.expense.findMany({
+        where: { userId: req.user.id },
+        orderBy: { date: 'desc' }
+      })
+    ]);
+
+    const currencySymbol = user?.currency?.split(' ')[0] || '$';
+    const insights = generateInsights(expenses, currencySymbol);
     
     res.json({ success: true, data: { insights } });
   } catch (err) {

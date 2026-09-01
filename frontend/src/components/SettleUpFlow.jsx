@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, ArrowDown, CheckCircle2, Check } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { formatCurrency } from '../utils/currency';
 
 const SettleUpFlow = ({ transactions, onSettle }) => {
   const { isDark } = useTheme();
+  const { user } = useAuth();
+  const userCurrency = user?.currency || localStorage.getItem('flow_currency') || 'USD ($)';
   const [settlingIndex, setSettlingIndex] = useState(null);
 
   const containerVariants = {
@@ -76,7 +80,7 @@ const SettleUpFlow = ({ transactions, onSettle }) => {
                     ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' 
                     : 'bg-emerald-100 text-emerald-950 border-emerald-300 font-bold'
                 }`}>
-                  ${tx.amount.toFixed(2)}
+                  {formatCurrency(tx.amount, userCurrency)}
                 </span>
                 <span className="hidden sm:inline text-emerald-500 dark:text-emerald-400 mt-1">
                   <ArrowRight size={16} />

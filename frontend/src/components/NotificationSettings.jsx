@@ -17,10 +17,15 @@ import {
   RefreshCw,
   Share,
   Smartphone,
+  Laptop,
   ExternalLink,
-  Info
+  Info,
+  CalendarClock,
+  Clock
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { CurrencyIcon } from '../utils/currency';
 import { notifications as notificationsApi } from '../lib/api';
 import {
   isPushNotificationSupported,
@@ -33,6 +38,8 @@ import {
 
 const NotificationSettings = () => {
   const { isDark } = useTheme();
+  const { user } = useAuth();
+  const userCurrency = user?.currency || localStorage.getItem('flow_currency') || 'USD ($)';
 
   const [supported, setSupported] = useState(true);
   const [browserEnv, setBrowserEnv] = useState({
@@ -40,6 +47,9 @@ const NotificationSettings = () => {
     label: 'Browser',
     isIOS: false,
     isAndroid: false,
+    isMobile: false,
+    deviceType: 'desktop',
+    deviceName: 'Desktop Browser',
     isStandalone: false,
     isSupported: true,
     requiresPwa: false,
@@ -55,6 +65,7 @@ const NotificationSettings = () => {
 
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [registeredDevices, setRegisteredDevices] = useState([]);
 
   const [preferences, setPreferences] = useState({
     budgetAlerts: true,
@@ -64,7 +75,7 @@ const NotificationSettings = () => {
   });
   const [savingPrefKey, setSavingPrefKey] = useState(null);
 
-  // Initialize push notification state and preferences
+  // Initialize push notification state, registered devices, and preferences
   useEffect(() => {
     async function init() {
       const env = await detectBrowserEnvironment();
@@ -84,8 +95,13 @@ const NotificationSettings = () => {
 
         setIsSubscribed(Boolean(existingSub) && perm === 'granted');
 
-        if (prefRes?.success && prefRes.data?.preferences) {
-          setPreferences(prefRes.data.preferences);
+        if (prefRes?.success && prefRes.data) {
+          if (prefRes.data.preferences) {
+            setPreferences(prefRes.data.preferences);
+          }
+          if (Array.isArray(prefRes.data.devices)) {
+            setRegisteredDevices(prefRes.data.devices);
+          }
           if (prefRes.data.isSubscribed && perm === 'granted') {
             setIsSubscribed(true);
           }
@@ -110,7 +126,17 @@ const NotificationSettings = () => {
       const currentPerm = getNotificationPermission();
       setPermission(currentPerm);
       setIsSubscribed(true);
-      setSuccessMessage('Push notifications enabled successfully! You will now receive budget and expense alerts on your device.');
+
+      // Refresh registered devices list
+      try {
+        const prefRes = await notificationsApi.getPreferences();
+        if (prefRes?.success && Array.isArray(prefRes.data?.devices)) {
+          setRegisteredDevices(prefRes.data.devices);
+        }
+      } catch {}
+
+      const deviceLabel = browserEnv.isMobile ? 'your mobile device' : 'your computer';
+      setSuccessMessage(`Push notifications enabled for ${deviceLabel}! You will now receive timely alerts on this device.`);
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err) {
       console.error('[ENABLE NOTIFICATIONS ERROR]:', err);
@@ -134,7 +160,16 @@ const NotificationSettings = () => {
     try {
       await unsubscribeFromPushNotifications();
       setIsSubscribed(false);
-      setSuccessMessage('You have unsubscribed from push notifications.');
+
+      // Refresh device list
+      try {
+        const prefRes = await notificationsApi.getPreferences();
+        if (prefRes?.success && Array.isArray(prefRes.data?.devices)) {
+          setRegisteredDevices(prefRes.data.devices);
+        }
+      } catch {}
+
+      setSuccessMessage('You have unsubscribed notifications from this device.');
       setTimeout(() => setSuccessMessage(''), 4000);
     } catch (err) {
       console.error('[DISABLE NOTIFICATIONS ERROR]:', err);
@@ -150,9 +185,18 @@ const NotificationSettings = () => {
     setTestLoading(true);
 
     try {
-      const res = await notificationsApi.sendTestPush();
+      const existingSub = await getExistingPushSubscription();
+      const payload = {
+        endpoint: existingSub?.endpoint || null,
+        userAgent: navigator.userAgent,
+        deviceType: browserEnv.deviceType,
+        deviceName: browserEnv.deviceName
+      };
+
+      const res = await notificationsApi.sendTestPush(payload);
       if (res.success) {
-        setSuccessMessage('Test notification dispatched! Look out for the notification banner on your screen or phone.');
+        const targetLabel = browserEnv.isMobile ? 'mobile phone' : 'desktop browser';
+        setSuccessMessage(`Test notification dispatched to your ${targetLabel} (${browserEnv.deviceName})!`);
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
         setErrorMessage(res.error || 'Failed to dispatch test notification.');
@@ -186,11 +230,7 @@ const NotificationSettings = () => {
   };
 
   return (
-    <div className={`p-5 sm:p-7 rounded-3xl border transition-all duration-300 ${
-      isDark
-        ? 'bg-gradient-to-b from-[#053D35]/30 to-[#02221D]/60 border-[#095348] shadow-2xl shadow-black/40'
-        : 'bg-gradient-to-b from-[#FFFFFF] to-[#F7FBFA] border-[#CEE8E1] shadow-xl shadow-[#147D70]/8'
-    }`}>
+    <div className="glass-card p-5 sm:p-7 w-full">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.08] dark:border-white/[0.08] border-[#CEE8E1]/60">
         <div className="flex items-center gap-3">
@@ -206,16 +246,16 @@ const NotificationSettings = () => {
               <h2 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-[#07241E]'}`}>
                 Notifications
               </h2>
-              {browserEnv.label && (
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
-                  isDark ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-[#EAF5F2] border-[#CEE8E1] text-[#147D70]'
-                }`}>
-                  {browserEnv.label}
-                </span>
-              )}
+              {/* Device Detection Badge */}
+              <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold border flex items-center gap-1.5 ${
+                isDark ? 'bg-white/5 border-white/10 text-emerald-300' : 'bg-[#EAF5F2] border-[#CEE8E1] text-[#147D70]'
+              }`}>
+                {browserEnv.isMobile ? <Smartphone size={12} /> : <Laptop size={12} />}
+                <span>{browserEnv.isMobile ? 'Mobile Device' : 'Desktop / Laptop'}</span>
+              </span>
             </div>
             <p className={`text-xs font-medium mt-0.5 ${isDark ? 'text-[#72C4B9]/80' : 'text-[#1F7669]'}`}>
-              Stay on top of your spending with helpful reminders and budget alerts.
+              Manage device-specific alerts, evening expense reminders, and recurring payment warnings.
             </p>
           </div>
         </div>
@@ -238,13 +278,13 @@ const NotificationSettings = () => {
                 : 'bg-[#EAF5F2] text-[#147D70] border border-[#3BAE9F]'
             }`}>
               <CheckCircle2 size={13} />
-              Active on this Device
+              Active on this {browserEnv.isMobile ? 'Phone' : 'Computer'}
             </span>
           ) : (
             <span className={`px-3 py-1 rounded-xl text-[11px] font-bold ${
               isDark ? 'bg-white/5 text-slate-400 border border-white/10' : 'bg-[#EAF5F2] text-[#4F736C] border border-[#CEE8E1]'
             }`}>
-              Disabled
+              Disabled on this Device
             </span>
           )}
         </div>
@@ -335,11 +375,13 @@ const NotificationSettings = () => {
         ) : (
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5">
             <div>
-              <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-[#07241E]'}`}>
-                {isSubscribed ? 'Browser Push Notifications Active' : 'Enable Instant Phone & Desktop Push'}
+              <p className={`text-sm font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-[#07241E]'}`}>
+                {isSubscribed
+                  ? `Push Notifications Active on ${browserEnv.isMobile ? 'Phone' : 'Laptop/Desktop'}`
+                  : `Enable Notifications on this ${browserEnv.isMobile ? 'Mobile Phone' : 'Computer'}`}
               </p>
               <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-300' : 'text-[#4F736C]'}`}>
-                Receive budget velocity alerts, weekly spending overviews, and daily expense reminders across any browser.
+                Enabling notifications on this {browserEnv.isMobile ? 'phone' : 'computer'} configures push delivery for this specific device.
               </p>
             </div>
 
@@ -361,7 +403,7 @@ const NotificationSettings = () => {
                     ) : (
                       <Send size={14} />
                     )}
-                    <span>Send Test</span>
+                    <span>Test on this Device</span>
                   </button>
 
                   <div className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 border ${
@@ -370,7 +412,7 @@ const NotificationSettings = () => {
                       : 'bg-[#EAF5F2] border-[#3BAE9F] text-[#147D70]'
                   }`}>
                     <CheckCircle2 size={15} />
-                    <span>Notifications Enabled ✓</span>
+                    <span>Enabled ✓</span>
                   </div>
 
                   <button
@@ -378,7 +420,7 @@ const NotificationSettings = () => {
                     disabled={actionLoading}
                     onClick={handleDisableNotifications}
                     className="p-2.5 rounded-xl font-bold text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer"
-                    title="Disable notifications"
+                    title="Disable notifications on this device"
                   >
                     <BellOff size={15} />
                   </button>
@@ -395,7 +437,7 @@ const NotificationSettings = () => {
                   ) : (
                     <>
                       <BellRing size={16} />
-                      <span>Enable Notifications</span>
+                      <span>Enable on this {browserEnv.isMobile ? 'Phone' : 'Computer'}</span>
                     </>
                   )}
                 </button>
@@ -404,24 +446,25 @@ const NotificationSettings = () => {
           </div>
         )}
 
-        {/* Brave Browser Specific Tip */}
-        {browserEnv.isBrave && !isSubscribed && (
-          <div className={`mt-4 p-3.5 sm:p-4 rounded-2xl border text-xs leading-relaxed space-y-2 ${
-            isDark
-              ? 'bg-amber-950/25 border-amber-500/30 text-amber-200'
-              : 'bg-amber-50/90 border-amber-300/80 text-amber-950 shadow-xs'
-          }`}>
-            <p className="font-bold flex items-center gap-1.5 text-xs">
-              <span>🦁 Brave Browser Push Notice:</span>
-            </p>
-            <p className="text-[11px] opacity-90">
-              Brave disables Google push messaging by default. To receive notifications in Brave:
-            </p>
-            <ol className="list-decimal list-inside text-[11px] space-y-1 font-medium opacity-90">
-              <li>Open a tab and paste: <code className="px-1.5 py-0.5 rounded bg-black/20 font-mono font-bold">brave://settings/privacy</code></li>
-              <li>Turn <strong>ON</strong> the toggle for <strong>"Use Google services for push messaging"</strong>.</li>
-              <li>Relaunch Brave and tap <strong>Enable Notifications</strong> above.</li>
-            </ol>
+        {/* Registered Devices Overview */}
+        {registeredDevices.length > 0 && (
+          <div className="mt-4 pt-3.5 border-t border-white/[0.06] flex flex-wrap items-center gap-2">
+            <span className={`text-[11px] font-semibold ${isDark ? 'text-slate-400' : 'text-[#4F736C]'}`}>
+              Registered devices ({registeredDevices.length}):
+            </span>
+            {registeredDevices.map((dev, idx) => (
+              <span
+                key={dev.id || idx}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
+                  dev.deviceType === 'mobile'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                    : 'bg-teal-500/10 border-teal-500/20 text-teal-400'
+                }`}
+              >
+                {dev.deviceType === 'mobile' ? <Smartphone size={11} /> : <Laptop size={11} />}
+                <span>{dev.deviceName || (dev.deviceType === 'mobile' ? 'Mobile' : 'Desktop')}</span>
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -455,7 +498,7 @@ const NotificationSettings = () => {
               <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
                 isDark ? 'bg-[#053D35] text-[#72C4B9]' : 'bg-[#EAF5F2] text-[#147D70]'
               }`}>
-                <DollarSign size={15} />
+                <CurrencyIcon currency={userCurrency} size={15} />
               </div>
               <div>
                 <p className={`text-xs font-bold ${isDark ? 'text-white' : 'text-[#07241E]'}`}>
@@ -475,7 +518,7 @@ const NotificationSettings = () => {
             />
           </div>
 
-          {/* Preference 2: Expense Reminders */}
+          {/* Preference 2: Evening Expense Reminders */}
           <div
             onClick={() => handleTogglePreference('expenseReminders')}
             className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
@@ -496,10 +539,10 @@ const NotificationSettings = () => {
               </div>
               <div>
                 <p className={`text-xs font-bold ${isDark ? 'text-white' : 'text-[#07241E]'}`}>
-                  Expense reminders
+                  Evening expense reminders
                 </p>
                 <p className={`text-[11px] leading-snug mt-0.5 ${isDark ? 'text-slate-400' : 'text-[#4F736C]'}`}>
-                  Daily evening reminders to record today's spending and split receipts.
+                  Nightly reminder (8–10 PM) to log today's expenses and split receipts.
                 </p>
               </div>
             </div>
@@ -512,7 +555,44 @@ const NotificationSettings = () => {
             />
           </div>
 
-          {/* Preference 3: Weekly Spending Summary */}
+          {/* Preference 3: Recurring Expense Alerts (1 Day in Advance) */}
+          <div
+            onClick={() => handleTogglePreference('savingsGoalUpdates')}
+            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
+              preferences.savingsGoalUpdates !== false
+                ? isDark
+                  ? 'bg-[#095348]/25 border-[#1F7669]/60'
+                  : 'bg-[#EAF5F2] border-[#3BAE9F]/50'
+                : isDark
+                  ? 'bg-black/15 border-white/5 opacity-60'
+                  : 'bg-white/50 border-[#CEE8E1] opacity-60'
+            }`}
+          >
+            <div className="flex items-start gap-2.5">
+              <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
+                isDark ? 'bg-[#053D35] text-[#72C4B9]' : 'bg-[#EAF5F2] text-[#147D70]'
+              }`}>
+                <CalendarClock size={15} />
+              </div>
+              <div>
+                <p className={`text-xs font-bold ${isDark ? 'text-white' : 'text-[#07241E]'}`}>
+                  Recurring bill reminders
+                </p>
+                <p className={`text-[11px] leading-snug mt-0.5 ${isDark ? 'text-slate-400' : 'text-[#4F736C]'}`}>
+                  Advance notice 1 day before subscriptions and recurring payments are due.
+                </p>
+              </div>
+            </div>
+
+            <input
+              type="checkbox"
+              checked={preferences.savingsGoalUpdates !== false}
+              onChange={() => {}}
+              className="mt-1 accent-emerald-500 w-4 h-4 rounded cursor-pointer"
+            />
+          </div>
+
+          {/* Preference 4: Weekly Spending Summary */}
           <div
             onClick={() => handleTogglePreference('weeklySummary')}
             className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
@@ -536,7 +616,7 @@ const NotificationSettings = () => {
                   Weekly spending summary
                 </p>
                 <p className={`text-[11px] leading-snug mt-0.5 ${isDark ? 'text-slate-400' : 'text-[#4F736C]'}`}>
-                  Weekly digest with total money spent and spending patterns.
+                  Sunday digest with total money spent and weekly spending velocity.
                 </p>
               </div>
             </div>
@@ -544,43 +624,6 @@ const NotificationSettings = () => {
             <input
               type="checkbox"
               checked={preferences.weeklySummary}
-              onChange={() => {}}
-              className="mt-1 accent-emerald-500 w-4 h-4 rounded cursor-pointer"
-            />
-          </div>
-
-          {/* Preference 4: Savings Goal Updates */}
-          <div
-            onClick={() => handleTogglePreference('savingsGoalUpdates')}
-            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
-              preferences.savingsGoalUpdates
-                ? isDark
-                  ? 'bg-[#095348]/25 border-[#1F7669]/60'
-                  : 'bg-[#EAF5F2] border-[#3BAE9F]/50'
-                : isDark
-                  ? 'bg-black/15 border-white/5 opacity-60'
-                  : 'bg-white/50 border-[#CEE8E1] opacity-60'
-            }`}
-          >
-            <div className="flex items-start gap-2.5">
-              <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
-                isDark ? 'bg-[#053D35] text-[#72C4B9]' : 'bg-[#EAF5F2] text-[#147D70]'
-              }`}>
-                <Target size={15} />
-              </div>
-              <div>
-                <p className={`text-xs font-bold ${isDark ? 'text-white' : 'text-[#07241E]'}`}>
-                  Savings goal updates
-                </p>
-                <p className={`text-[11px] leading-snug mt-0.5 ${isDark ? 'text-slate-400' : 'text-[#4F736C]'}`}>
-                  Alerts when you are close to hitting your milestone savings targets.
-                </p>
-              </div>
-            </div>
-
-            <input
-              type="checkbox"
-              checked={preferences.savingsGoalUpdates}
               onChange={() => {}}
               className="mt-1 accent-emerald-500 w-4 h-4 rounded cursor-pointer"
             />
