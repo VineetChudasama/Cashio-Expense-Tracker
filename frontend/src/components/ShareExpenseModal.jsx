@@ -70,6 +70,7 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
         userId: p.userId,
         name: p.user?.name || 'User',
         email: p.user?.email || '',
+        avatar: p.user?.avatar || p.avatar || null,
         amountOwed: p.amountOwed.toString()
       }));
     }
@@ -134,6 +135,7 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
       userId: user.id,
       name: user.name,
       email: user.email,
+      avatar: user.avatar || null,
       amountOwed: ''
     }]);
     setSearchEmail('');
@@ -529,12 +531,16 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
                                   }`}
                                 >
                                   <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border ${
+                                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border overflow-hidden ${
                                       isDark 
                                         ? 'bg-gradient-to-br from-emerald-500/30 to-teal-500/20 border-emerald-400/30 text-white' 
                                         : 'bg-[#DFECE5] border-emerald-600/30 text-emerald-950'
                                     }`}>
-                                      {user.name?.charAt(0)?.toUpperCase() || '?'}
+                                      {user.avatar ? (
+                                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        user.name?.charAt(0)?.toUpperCase() || '?'
+                                      )}
                                     </div>
                                     <div className="min-w-0">
                                       <p className="text-xs font-bold text-[var(--text-primary)] truncate">{user.name}</p>
@@ -606,12 +612,16 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
                                 isDark ? 'glass-elevated border-white/[0.06]' : 'bg-white border-emerald-600/25 shadow-xs'
                               }`}
                             >
-                              <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border ${
+                              <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border overflow-hidden ${
                                 isDark 
                                   ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border-emerald-400/25 text-white' 
                                   : 'bg-[#DFECE5] border-emerald-600/30 text-emerald-950'
                               }`}>
-                                {p.name?.charAt(0) || '?'}
+                                {p.avatar ? (
+                                  <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  p.name?.charAt(0) || '?'
+                                )}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="text-xs sm:text-sm font-bold text-[var(--text-primary)] truncate">{p.name}</p>
@@ -852,12 +862,16 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
                                     }`}
                                   >
                                     <div className="flex items-center gap-2.5 min-w-0">
-                                      <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border ${
+                                      <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border overflow-hidden ${
                                         isDark 
                                           ? 'bg-gradient-to-br from-emerald-500/30 to-teal-500/20 border-emerald-400/30 text-white' 
                                           : 'bg-[#DFECE5] border-emerald-600/30 text-emerald-950'
                                       }`}>
-                                        {user.name?.charAt(0)?.toUpperCase() || '?'}
+                                        {user.avatar ? (
+                                          <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                          user.name?.charAt(0)?.toUpperCase() || '?'
+                                        )}
                                       </div>
                                       <div className="min-w-0">
                                         <p className="text-xs font-bold text-[var(--text-primary)] truncate">{user.name}</p>
@@ -880,6 +894,19 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
                           </motion.div>
                         )}
                       </AnimatePresence>
+
+                      {!searching && searchEmail.trim().length >= 2 && searchResults.length === 0 && (
+                        <div className={`mt-2 p-3.5 rounded-xl text-center border ${
+                          isDark ? 'glass-elevated border-white/[0.08]' : 'bg-white border-emerald-600/25'
+                        }`}>
+                          <p className="text-xs text-[var(--text-primary)] font-semibold">
+                            No registered user found for &quot;<span className="text-emerald-500 dark:text-emerald-400">{searchEmail}</span>&quot;
+                          </p>
+                          <p className="text-[11px] text-[var(--text-muted)] mt-1 leading-relaxed">
+                            Make sure your friend has signed up for a Cashio account with this name or email.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Participants list */}
@@ -916,12 +943,16 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
                                   isDark ? 'glass-elevated border-white/[0.06]' : 'bg-white border-emerald-600/25 shadow-xs'
                                 }`}
                               >
-                                <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border ${
+                                <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border overflow-hidden ${
                                   isDark 
                                     ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border-emerald-400/25 text-white' 
                                     : 'bg-[#DFECE5] border-emerald-600/30 text-emerald-950'
                                 }`}>
-                                  {p.name?.charAt(0) || '?'}
+                                  {p.avatar ? (
+                                    <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    p.name?.charAt(0) || '?'
+                                  )}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="text-xs sm:text-sm font-bold text-[var(--text-primary)] truncate">{p.name}</p>

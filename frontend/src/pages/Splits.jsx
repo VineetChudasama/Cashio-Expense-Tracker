@@ -72,6 +72,8 @@ const Splits = () => {
       amount: p.amountOwed,
       fromName: p.user?.name || 'Participant',
       toName: user?.name || 'You',
+      fromAvatar: p.user?.avatar || null,
+      toAvatar: user?.avatar || null,
       description: exp.expense?.description || exp.expense?.category || 'Shared bill',
       title: `Confirm Settlement with ${p.user?.name || 'Participant'}`
     });
@@ -82,12 +84,16 @@ const Splits = () => {
     setSettleError('');
     const fromName = tx.from?.name || (typeof tx.from === 'string' ? tx.from : 'User');
     const toName = tx.to?.name || (typeof tx.to === 'string' ? tx.to : 'User');
+    const fromAvatar = tx.from?.avatar || (fromName === 'You' ? user?.avatar : null);
+    const toAvatar = tx.to?.avatar || (toName === 'You' ? user?.avatar : null);
     setSettleConfirmData({
       type: 'transaction',
       tx,
       amount: tx.amount,
       fromName,
       toName,
+      fromAvatar,
+      toAvatar,
       title: `Confirm Debt Settlement`
     });
   };
@@ -238,20 +244,38 @@ const Splits = () => {
                                 {exp.expense?.description || 'Shared Expense'}
                               </h3>
                               {isCreator ? (
-                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border tracking-wider ${
+                                <span className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-md border tracking-wider ${
                                   isDark 
                                     ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.15)]' 
                                     : 'bg-emerald-100 text-emerald-950 border-emerald-400/50 shadow-xs'
                                 }`}>
-                                  You Paid
+                                  <div className="w-3.5 h-3.5 rounded-full overflow-hidden shrink-0 border border-emerald-400/40">
+                                    {user?.avatar ? (
+                                      <img src={user.avatar} alt="You" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-[7px] font-bold bg-emerald-500/20 text-emerald-400">
+                                        {(user?.name || 'Y').charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span>You Paid</span>
                                 </span>
                               ) : (
-                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border tracking-wider ${
+                                <span className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-md border tracking-wider ${
                                   isDark 
                                     ? 'bg-teal-500/15 text-teal-300 border-teal-500/30' 
                                     : 'bg-teal-50 text-teal-950 border-teal-300 shadow-xs'
                                 }`}>
-                                  Paid by {exp.createdBy?.name || 'User'}
+                                  <div className="w-3.5 h-3.5 rounded-full overflow-hidden shrink-0 border border-teal-400/40">
+                                    {exp.createdBy?.avatar ? (
+                                      <img src={exp.createdBy.avatar} alt={exp.createdBy.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-[7px] font-bold bg-teal-500/20 text-teal-400">
+                                        {(exp.createdBy?.name || 'U').charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span>Paid by {exp.createdBy?.name || 'User'}</span>
                                 </span>
                               )}
                             </div>
@@ -265,15 +289,24 @@ const Splits = () => {
                                 {exp.participants.map(p => (
                                   <span 
                                     key={p.id} 
-                                    className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg border font-medium ${
+                                    className={`inline-flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-lg border font-medium ${
                                       isDark 
                                         ? 'bg-[#021411] text-slate-300 border-white/[0.06]' 
                                         : 'bg-white text-emerald-950 border-emerald-600/25 shadow-xs'
                                     }`}
                                   >
+                                    <div className="w-3.5 h-3.5 rounded-full overflow-hidden shrink-0 border border-emerald-500/30">
+                                      {p.user?.avatar ? (
+                                        <img src={p.user.avatar} alt={p.user.name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-[7px] font-bold bg-emerald-500/20 text-emerald-400">
+                                          {(p.user?.name || 'U').charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                    </div>
                                     <span>{p.user?.name || 'User'}: <strong className={isDark ? 'text-emerald-300 font-bold' : 'text-emerald-700 font-bold'}>{formatCurrency(p.amountOwed, userCurrency)}</strong></span>
                                     {p.settled ? (
-                                      <span className="text-emerald-500 font-black" title="Settled">✓</span>
+                                      <span className="text-emerald-500 font-black ml-0.5" title="Settled">✓</span>
                                     ) : isCreator ? (
                                       <button
                                         onClick={() => requestSettleParticipant(p, exp)}
@@ -501,17 +534,28 @@ const Splits = () => {
                   : 'bg-[#E7F3ED] border-emerald-600/25 shadow-xs'
               }`}>
                 <div className="flex items-center justify-between gap-2 text-xs">
-                  <div className={`flex-1 text-center p-2.5 rounded-xl border ${
+                  <div className={`flex-1 text-center p-2.5 rounded-xl border flex flex-col items-center justify-center ${
                     isDark 
                       ? 'bg-emerald-500/10 border-emerald-400/20' 
                       : 'bg-white border-emerald-600/25 shadow-xs'
                   }`}>
-                    <span className={`text-[10px] block uppercase font-bold mb-0.5 ${
+                    <span className={`text-[10px] block uppercase font-bold mb-1 ${
                       isDark ? 'text-slate-400' : 'text-[#4F736C]'
                     }`}>Payer</span>
-                    <span className={`font-bold truncate block ${
-                      isDark ? 'text-white' : 'text-[#07241E]'
-                    }`}>{settleConfirmData.fromName}</span>
+                    <div className="flex items-center gap-1.5 max-w-full">
+                      <div className="w-5 h-5 rounded-md overflow-hidden shrink-0 border border-emerald-500/30">
+                        {settleConfirmData.fromAvatar ? (
+                          <img src={settleConfirmData.fromAvatar} alt={settleConfirmData.fromName} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[9px] font-bold bg-emerald-500/20 text-emerald-400">
+                            {settleConfirmData.fromName?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                      </div>
+                      <span className={`font-bold truncate text-xs ${
+                        isDark ? 'text-white' : 'text-[#07241E]'
+                      }`}>{settleConfirmData.fromName}</span>
+                    </div>
                   </div>
 
                   <div className="flex flex-col items-center px-1">
@@ -525,17 +569,28 @@ const Splits = () => {
                     <ArrowRight size={14} className={isDark ? 'text-emerald-400 mt-1' : 'text-emerald-600 mt-1'} />
                   </div>
 
-                  <div className={`flex-1 text-center p-2.5 rounded-xl border ${
+                  <div className={`flex-1 text-center p-2.5 rounded-xl border flex flex-col items-center justify-center ${
                     isDark 
                       ? 'bg-emerald-500/10 border-emerald-400/20' 
                       : 'bg-white border-emerald-600/25 shadow-xs'
                   }`}>
-                    <span className={`text-[10px] block uppercase font-bold mb-0.5 ${
+                    <span className={`text-[10px] block uppercase font-bold mb-1 ${
                       isDark ? 'text-slate-400' : 'text-[#4F736C]'
                     }`}>Receiver</span>
-                    <span className={`font-bold truncate block ${
-                      isDark ? 'text-white' : 'text-[#07241E]'
-                    }`}>{settleConfirmData.toName}</span>
+                    <div className="flex items-center gap-1.5 max-w-full">
+                      <div className="w-5 h-5 rounded-md overflow-hidden shrink-0 border border-emerald-500/30">
+                        {settleConfirmData.toAvatar ? (
+                          <img src={settleConfirmData.toAvatar} alt={settleConfirmData.toName} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[9px] font-bold bg-emerald-500/20 text-emerald-400">
+                            {settleConfirmData.toName?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                      </div>
+                      <span className={`font-bold truncate text-xs ${
+                        isDark ? 'text-white' : 'text-[#07241E]'
+                      }`}>{settleConfirmData.toName}</span>
+                    </div>
                   </div>
                 </div>
 

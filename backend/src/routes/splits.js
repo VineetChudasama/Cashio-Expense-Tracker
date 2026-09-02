@@ -70,9 +70,9 @@ router.post('/', async (req, res) => {
       },
       include: {
         expense: true,
-        createdBy: { select: { id: true, name: true, email: true } },
+        createdBy: { select: { id: true, name: true, email: true, avatar: true } },
         participants: {
-          include: { user: { select: { id: true, name: true, email: true } } }
+          include: { user: { select: { id: true, name: true, email: true, avatar: true } } }
         }
       }
     });
@@ -121,9 +121,9 @@ router.get('/', async (req, res) => {
       },
       include: {
         expense: true,
-        createdBy: { select: { id: true, name: true, email: true } },
+        createdBy: { select: { id: true, name: true, email: true, avatar: true } },
         participants: {
-          include: { user: { select: { id: true, name: true, email: true } } }
+          include: { user: { select: { id: true, name: true, email: true, avatar: true } } }
         }
       },
       orderBy: { expense: { date: 'desc' } }
@@ -144,8 +144,8 @@ router.get('/balances', async (req, res) => {
         ]
       },
       include: {
-        participants: { include: { user: { select: { id: true, name: true, email: true } } } },
-        createdBy: { select: { id: true, name: true, email: true } }
+        participants: { include: { user: { select: { id: true, name: true, email: true, avatar: true } } } },
+        createdBy: { select: { id: true, name: true, email: true, avatar: true } }
       }
     });
 
@@ -160,11 +160,13 @@ router.get('/balances', async (req, res) => {
         if (isCreator && p.userId !== req.user.id) {
           const uName = p.user?.name || 'User';
           const uEmail = p.user?.email || '';
+          const uAvatar = p.user?.avatar || null;
           const current = balances.get(p.userId) || {
             id: p.userId,
             name: uName,
             email: uEmail,
-            user: { id: p.userId, name: uName, email: uEmail },
+            avatar: uAvatar,
+            user: { id: p.userId, name: uName, email: uEmail, avatar: uAvatar },
             amount: 0
           };
           current.amount += p.amountOwed;
@@ -172,11 +174,13 @@ router.get('/balances', async (req, res) => {
         } else if (!isCreator && p.userId === req.user.id) {
           const uName = se.createdBy?.name || 'User';
           const uEmail = se.createdBy?.email || '';
+          const uAvatar = se.createdBy?.avatar || null;
           const current = balances.get(se.createdByUserId) || {
             id: se.createdByUserId,
             name: uName,
             email: uEmail,
-            user: { id: se.createdByUserId, name: uName, email: uEmail },
+            avatar: uAvatar,
+            user: { id: se.createdByUserId, name: uName, email: uEmail, avatar: uAvatar },
             amount: 0
           };
           current.amount -= p.amountOwed;
@@ -201,14 +205,14 @@ router.get('/settle', async (req, res) => {
         ]
       },
       include: {
-        participants: { include: { user: { select: { id: true, name: true, email: true } } } },
-        createdBy: { select: { id: true, name: true, email: true } }
+        participants: { include: { user: { select: { id: true, name: true, email: true, avatar: true } } } },
+        createdBy: { select: { id: true, name: true, email: true, avatar: true } }
       }
     });
 
     const balancesMap = new Map();
     const userLookup = new Map();
-    userLookup.set(req.user.id, { id: req.user.id, name: "You" });
+    userLookup.set(req.user.id, { id: req.user.id, name: "You", avatar: req.user.avatar });
 
     for (const se of sharedExpenses) {
       const isCreator = se.createdByUserId === req.user.id;
@@ -403,9 +407,9 @@ router.put('/:id', [
       where: { id },
       include: {
         expense: true,
-        createdBy: { select: { id: true, name: true, email: true } },
+        createdBy: { select: { id: true, name: true, email: true, avatar: true } },
         participants: {
-          include: { user: { select: { id: true, name: true, email: true } } }
+          include: { user: { select: { id: true, name: true, email: true, avatar: true } } }
         }
       }
     });

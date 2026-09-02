@@ -59,6 +59,12 @@ const SettleUpFlow = ({ transactions, onSettle }) => {
         const isReceiver = tx.toUserId === user?.id || 
                            tx.to?.id === user?.id || 
                            (typeof tx.to === 'string' && tx.to.toLowerCase() === 'you');
+        const isUserPayer = tx.fromUserId === user?.id || 
+                            tx.from?.id === user?.id || 
+                            (typeof tx.from === 'string' && tx.from.toLowerCase() === 'you');
+
+        const fromAvatar = tx.from?.avatar || (isUserPayer ? user?.avatar : null);
+        const toAvatar = tx.to?.avatar || (isReceiver ? user?.avatar : null);
 
         return (
           <motion.div 
@@ -73,13 +79,24 @@ const SettleUpFlow = ({ transactions, onSettle }) => {
             {/* Peer to Peer settlement summary */}
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 flex-1 min-w-0">
               {/* From (Debtor) */}
-              <div className={`w-full sm:flex-1 py-2.5 sm:py-3 px-3.5 text-center font-bold text-xs sm:text-sm truncate rounded-xl border ${
+              <div className={`w-full sm:flex-1 py-2 sm:py-2.5 px-3.5 flex items-center justify-center gap-2.5 font-bold text-xs sm:text-sm truncate rounded-xl border ${
                 isDark 
                   ? 'glass-inset text-white' 
                   : 'bg-[#E7F3ED] border-emerald-600/30 text-[#07241E] shadow-xs'
               }`}>
-                <span className="text-[10px] block font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-0.5">PAYS</span>
-                {fromName}
+                <div className="w-7 h-7 rounded-lg overflow-hidden shrink-0 border border-emerald-500/30">
+                  {fromAvatar ? (
+                    <img src={fromAvatar} alt={fromName} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs font-bold bg-emerald-500/20 text-emerald-400">
+                      {fromName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 text-left">
+                  <span className="text-[9px] block font-semibold text-[var(--text-muted)] uppercase tracking-wider">PAYS</span>
+                  <span className="truncate block font-bold">{fromName}</span>
+                </div>
               </div>
               
               {/* Arrow & Amount */}
@@ -100,13 +117,24 @@ const SettleUpFlow = ({ transactions, onSettle }) => {
               </div>
               
               {/* To (Creditor) */}
-              <div className={`w-full sm:flex-1 py-2.5 sm:py-3 px-3.5 text-center font-bold text-xs sm:text-sm truncate rounded-xl border ${
+              <div className={`w-full sm:flex-1 py-2 sm:py-2.5 px-3.5 flex items-center justify-center gap-2.5 font-bold text-xs sm:text-sm truncate rounded-xl border ${
                 isDark 
                   ? 'glass-inset text-white' 
                   : 'bg-[#E7F3ED] border-emerald-600/30 text-[#07241E] shadow-xs'
               }`}>
-                <span className="text-[10px] block font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-0.5">RECEIVES</span>
-                {toName}
+                <div className="w-7 h-7 rounded-lg overflow-hidden shrink-0 border border-emerald-500/30">
+                  {toAvatar ? (
+                    <img src={toAvatar} alt={toName} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs font-bold bg-emerald-500/20 text-emerald-400">
+                      {toName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 text-left">
+                  <span className="text-[9px] block font-semibold text-[var(--text-muted)] uppercase tracking-wider">RECEIVES</span>
+                  <span className="truncate block font-bold">{toName}</span>
+                </div>
               </div>
             </div>
             
