@@ -696,10 +696,10 @@ const Profile = () => {
               </div>
 
               {/* Modal Body - Scrollable 10 Avatars Grid */}
-              <div className={`p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[60vh] ${
+              <div className={`p-3 sm:p-6 overflow-y-auto space-y-3 sm:space-y-4 max-h-[65vh] sm:max-h-[60vh] ${
                 isDark ? 'bg-transparent' : 'bg-[#FAFCFB]'
               }`}>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-3.5">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3.5">
                   {PRESET_AVATARS.map((avatar) => {
                     const isSelected = currentAvatar === avatar.src;
                     const isSavingThis = isSavingAvatar && savingAvatarSrc === avatar.src;
@@ -707,10 +707,10 @@ const Profile = () => {
                     return (
                       <motion.div
                         key={avatar.id}
-                        whileHover={{ y: -3, scale: 1.02 }}
+                        whileHover={{ y: -2, scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => handleSelectAvatar(avatar.src)}
-                        className={`relative rounded-2xl border p-2.5 transition-all cursor-pointer flex flex-col items-center group ${
+                        className={`relative rounded-xl sm:rounded-2xl border p-1.5 sm:p-2.5 transition-all cursor-pointer flex flex-col items-center group ${
                           isSelected
                             ? isDark
                               ? 'bg-emerald-500/20 border-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/50'
@@ -721,7 +721,7 @@ const Profile = () => {
                         }`}
                       >
                         {/* Photo Thumbnail */}
-                        <div className={`w-full aspect-square rounded-xl overflow-hidden relative mb-2 shadow-inner border ${
+                        <div className={`w-full aspect-square rounded-lg sm:rounded-xl overflow-hidden relative mb-1 sm:mb-2 shadow-inner border ${
                           isDark ? 'bg-black/40 border-white/10' : 'bg-slate-100 border-[#D2E7E1]'
                         }`}>
                           <img
@@ -731,26 +731,26 @@ const Profile = () => {
                             loading="lazy"
                           />
                           {isSelected && (
-                            <div className="absolute top-1.5 right-1.5 bg-emerald-500 text-white p-1 rounded-full shadow-md border border-white/40">
-                              <Check size={11} strokeWidth={3.5} />
+                            <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 bg-emerald-500 text-white p-0.5 sm:p-1 rounded-full shadow-md border border-white/40">
+                              <Check size={9} strokeWidth={3.5} className="sm:w-[11px] sm:h-[11px]" />
                             </div>
                           )}
                           {isSavingThis && (
                             <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center">
-                              <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+                              <div className="w-5 h-5 sm:w-6 sm:h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
                             </div>
                           )}
                         </div>
 
                         {/* Character Label */}
-                        <span className={`text-xs font-bold transition-colors ${
+                        <span className={`text-[10px] sm:text-xs font-bold leading-tight truncate max-w-full text-center transition-colors ${
                           isSelected
                             ? isDark ? 'text-emerald-300' : 'text-emerald-900'
                             : isDark ? 'text-white group-hover:text-emerald-300' : 'text-slate-800 group-hover:text-emerald-700'
                         }`}>
                           {avatar.name}
                         </span>
-                        <span className={`text-[10px] font-medium ${
+                        <span className={`text-[8px] sm:text-[10px] font-medium leading-tight truncate max-w-full text-center mt-0.5 ${
                           isSelected
                             ? isDark ? 'text-emerald-400/80' : 'text-emerald-700/80'
                             : isDark ? 'text-slate-400' : 'text-slate-500'
