@@ -177,6 +177,10 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
         setError('Please enter a valid expense amount.');
         return;
       }
+      if (amountVal > 100000) {
+        setError(`Expense amount cannot exceed ${currencySymbol}100,000 per expense.`);
+        return;
+      }
       if (!newExpenseData.description.trim()) {
         setError('Please enter a description for the expense (e.g. Dinner, Taxi, etc.).');
         return;
@@ -374,18 +378,28 @@ const ShareExpenseModal = ({ splitToEdit, onClose }) => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <CurrencyIcon currency={userCurrency} size={12} className="text-emerald-500 dark:text-emerald-400" />
-                        <span>Total Amount ({currencySymbol})</span>
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1">
+                          <CurrencyIcon currency={userCurrency} size={12} className="text-emerald-500 dark:text-emerald-400" />
+                          <span>Total Amount ({currencySymbol})</span>
+                        </label>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-400/20">
+                          Max {currencySymbol}100,000
+                        </span>
+                      </div>
                       <input
                         type="number"
                         min="0.01"
+                        max="100000"
                         step="0.01"
                         required
                         placeholder="0.00"
                         value={newExpenseData.amount}
-                        onChange={(e) => setNewExpenseData(prev => ({ ...prev, amount: e.target.value }))}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val !== '' && parseFloat(val) > 100000) return;
+                          setNewExpenseData(prev => ({ ...prev, amount: val }));
+                        }}
                         className="w-full glass-inset px-3 py-2.5 text-sm font-bold text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-emerald-400"
                       />
                     </div>

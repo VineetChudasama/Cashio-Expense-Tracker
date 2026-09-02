@@ -52,27 +52,32 @@ router.get('/preferences', async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Classify user's registered devices
-    const devices = subscriptions.map(sub => {
+    // Classify user's registered devices and deduplicate by deviceName
+    const seenDevices = new Set();
+    const uniqueDevices = [];
+    for (const sub of subscriptions) {
       const parsed = parseDeviceFromUserAgent(sub.userAgent);
-      return {
-        id: sub.id,
-        endpoint: sub.endpoint,
-        deviceType: parsed.deviceType,
-        deviceName: parsed.deviceName,
-        os: parsed.os,
-        browser: parsed.browser,
-        createdAt: sub.createdAt
-      };
-    });
+      if (!seenDevices.has(parsed.deviceName)) {
+        seenDevices.add(parsed.deviceName);
+        uniqueDevices.push({
+          id: sub.id,
+          endpoint: sub.endpoint,
+          deviceType: parsed.deviceType,
+          deviceName: parsed.deviceName,
+          os: parsed.os,
+          browser: parsed.browser,
+          createdAt: sub.createdAt
+        });
+      }
+    }
 
     res.json({
       success: true,
       data: {
         preferences,
-        isSubscribed: subscriptions.length > 0,
-        subscriptionsCount: subscriptions.length,
-        devices
+        isSubscribed: uniqueDevices.length > 0,
+        subscriptionsCount: uniqueDevices.length,
+        devices: uniqueDevices
       }
     });
   } catch (err) {
@@ -157,6 +162,24 @@ router.post('/subscribe', async (req, res) => {
     });
 
     const parsedDevice = parseDeviceFromUserAgent(effectiveUserAgent);
+
+    // Prune older stale subscriptions for this device name to prevent duplicates
+    try {
+      const existingForDevice = await prisma.pushSubscription.findMany({
+        where: {
+          userId: req.user.id,
+          endpoint: { not: endpoint }
+        }
+      });
+      for (const oldSub of existingForDevice) {
+        const oldParsed = parseDeviceFromUserAgent(oldSub.userAgent);
+        if (oldParsed.deviceName === parsedDevice.deviceName) {
+          await prisma.pushSubscription.delete({ where: { id: oldSub.id } });
+        }
+      }
+    } catch (cleanupErr) {
+      console.warn('[PUSH SUBSCRIPTION CLEANUP NOTICE]:', cleanupErr.message);
+    }
 
     res.json({
       success: true,
@@ -379,6 +402,27 @@ router.patch('/read-all', async (req, res) => {
 });
 
 /**
+ * DELETE /api/notifications/clear-all
+ * Clears all notifications for the authenticated user
+ */
+router.delete('/clear-all', async (req, res) => {
+  try {
+    await prisma.notification.deleteMany({
+      where: { userId: req.user.id }
+    });
+
+    res.json({
+      success: true,
+      message: 'All notifications cleared',
+      data: { unreadCount: 0 }
+    });
+  } catch (err) {
+    console.error('[NOTIFICATIONS CLEAR ALL ERROR]:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * DELETE /api/notifications/:id
  * Deletes a single notification
  */
@@ -409,27 +453,6 @@ router.delete('/:id', async (req, res) => {
     });
   } catch (err) {
     console.error('[NOTIFICATIONS DELETE ERROR]:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-/**
- * DELETE /api/notifications/clear-all
- * Clears all notifications for the authenticated user
- */
-router.delete('/clear-all', async (req, res) => {
-  try {
-    await prisma.notification.deleteMany({
-      where: { userId: req.user.id }
-    });
-
-    res.json({
-      success: true,
-      message: 'All notifications cleared',
-      data: { unreadCount: 0 }
-    });
-  } catch (err) {
-    console.error('[NOTIFICATIONS CLEAR ALL ERROR]:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

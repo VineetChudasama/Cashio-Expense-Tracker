@@ -21,6 +21,7 @@ router.get('/profile', async (req, res) => {
         name: true,
         email: true,
         currency: true,
+        avatar: true,
         isVerified: true,
         createdAt: true,
         _count: {
@@ -93,6 +94,7 @@ router.get('/search', async (req, res) => {
         id: true,
         name: true,
         email: true,
+        avatar: true,
         isVerified: true
       },
       take: 10
@@ -102,6 +104,7 @@ router.get('/search', async (req, res) => {
       id: u.id,
       name: u.name,
       email: u.email,
+      avatar: u.avatar,
       isVerified: u.isVerified,
       isSelf: u.id === req.user.id
     }));
@@ -118,19 +121,21 @@ router.get('/search', async (req, res) => {
 
 router.put('/profile', [
   body('name').optional().notEmpty().withMessage('Name cannot be empty'),
-  body('currency').optional()
+  body('currency').optional(),
+  body('avatar').optional()
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ success: false, error: errors.array() });
 
   try {
-    const { name, currency, convertExpenses, conversionRate, fromCurrency } = req.body;
+    const { name, currency, avatar, convertExpenses, conversionRate, fromCurrency } = req.body;
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
     const updateData = {};
     if (name) updateData.name = name;
     if (currency) updateData.currency = currency;
+    if (avatar !== undefined) updateData.avatar = avatar;
 
     // If user requested to convert existing expenses to the new currency using exchange rate
     let convertedCount = 0;
@@ -212,6 +217,7 @@ router.put('/profile', [
         name: true,
         email: true,
         currency: true,
+        avatar: true,
         isVerified: true,
         createdAt: true
       }
@@ -385,7 +391,13 @@ router.put('/change-password-with-otp', [
 
     const verification = await verifyEmailOTP(user.email, otpCode, 'CHANGE_PASSWORD');
     if (!verification.valid) {
-      return res.status(400).json({ success: false, error: verification.error });
+      const status = verification.locked ? 429 : 400;
+      return res.status(status).json({
+        success: false,
+        error: verification.error,
+        locked: Boolean(verification.locked),
+        remainingMinutes: verification.remainingMinutes
+      });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -459,7 +471,13 @@ router.put('/change-email-with-otp', [
 
     const verification = await verifyEmailOTP(user.email, otpCode, 'CHANGE_EMAIL');
     if (!verification.valid) {
-      return res.status(400).json({ success: false, error: verification.error });
+      const status = verification.locked ? 429 : 400;
+      return res.status(status).json({
+        success: false,
+        error: verification.error,
+        locked: Boolean(verification.locked),
+        remainingMinutes: verification.remainingMinutes
+      });
     }
 
     const updatedUser = await prisma.user.update({
@@ -664,9 +682,35 @@ router.put('/category-limits', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid limits object provided' });
     }
 
+    const CATEGORY_MAX_LIMITS = {
+      Rent: 100000,
+      Education: 80000,
+      Travel: 60000,
+      Food: 50000,
+      Shopping: 40000,
+      Health: 35000,
+      Utilities: 30000,
+      Entertainment: 25000,
+      Transport: 25000,
+      Other: 20000
+    };
+    const DEFAULT_MAX_LIMIT = 100000;
     const entries = Array.isArray(limits)
       ? limits
       : Object.entries(limits).map(([category, limit]) => ({ category, limit: parseFloat(limit) }));
+
+    // Pre-validate all limits before saving
+    for (const item of entries) {
+      if (item.category && !isNaN(item.limit) && item.limit > 0) {
+        const maxAllowed = CATEGORY_MAX_LIMITS[item.category] || DEFAULT_MAX_LIMIT;
+        if (item.limit > maxAllowed) {
+          return res.status(400).json({
+            success: false,
+            error: `Category limit for "${item.category}" cannot exceed ${maxAllowed.toLocaleString()}`
+          });
+        }
+      }
+    }
 
     const saved = [];
     for (const item of entries) {

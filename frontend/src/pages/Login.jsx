@@ -13,7 +13,8 @@ import {
   EyeOff, 
   ShieldCheck, 
   KeyRound,
-  RefreshCw 
+  RefreshCw,
+  Lock 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -43,6 +44,7 @@ const Login = () => {
   const [resendTimer, setResendTimer] = useState(60);
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
+  const [otpLockoutTimer, setOtpLockoutTimer] = useState(0);
 
   const [emailStatus, setEmailStatus] = useState('idle');
   const [emailError, setEmailError] = useState('');
@@ -50,6 +52,50 @@ const Login = () => {
 
   const navigate = useNavigate();
   const { login, verifyRegisterOtp } = useAuth();
+
+  // Check saved OTP lockout timestamp on step or target email changes
+  useEffect(() => {
+    const targetEmail = step === 4 ? forgotEmail.trim().toLowerCase() : email.trim().toLowerCase();
+    if (!targetEmail) return;
+    const saved = localStorage.getItem('cashio_otp_lockout_' + targetEmail);
+    if (saved) {
+      const until = parseInt(saved, 10);
+      const remaining = Math.ceil((until - Date.now()) / 1000);
+      if (remaining > 0) {
+        setOtpLockoutTimer(remaining);
+      } else {
+        localStorage.removeItem('cashio_otp_lockout_' + targetEmail);
+        setOtpLockoutTimer(0);
+      }
+    }
+  }, [step, email, forgotEmail]);
+
+  // Tick down otpLockoutTimer
+  useEffect(() => {
+    let interval;
+    if (otpLockoutTimer > 0) {
+      interval = setInterval(() => {
+        setOtpLockoutTimer(prev => {
+          if (prev <= 1) {
+            const targetEmail = step === 4 ? forgotEmail.trim().toLowerCase() : email.trim().toLowerCase();
+            if (targetEmail) localStorage.removeItem('cashio_otp_lockout_' + targetEmail);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpLockoutTimer, step, email, forgotEmail]);
+
+  const triggerOtpLockout = (targetEmail, seconds = 600) => {
+    const normalized = (targetEmail || '').trim().toLowerCase();
+    const duration = seconds > 0 ? seconds : 600;
+    setOtpLockoutTimer(duration);
+    if (normalized) {
+      localStorage.setItem('cashio_otp_lockout_' + normalized, (Date.now() + duration * 1000).toString());
+    }
+  };
 
   useEffect(() => {
     let interval;
@@ -170,7 +216,13 @@ const Login = () => {
         setError(res.error || 'Invalid verification code');
       }
     } catch (err) {
-      const serverErr = err.response?.data?.error;
+      const respData = err.response?.data;
+      if (err.response?.status === 429 || respData?.locked) {
+        const sec = respData?.remainingSeconds || (respData?.remainingMinutes ? respData.remainingMinutes * 60 : 600);
+        triggerOtpLockout(email, sec);
+      }
+
+      const serverErr = respData?.error;
       let msg = 'Failed to verify code';
       if (Array.isArray(serverErr)) {
         msg = serverErr.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
@@ -188,7 +240,7 @@ const Login = () => {
   };
 
   const handleResendOtp = async () => {
-    if (resendTimer > 0 || resending) return;
+    if (resendTimer > 0 || resending || otpLockoutTimer > 0) return;
     setResending(true);
     setError('');
     setResendMessage('');
@@ -207,6 +259,11 @@ const Login = () => {
         setError(res.error || 'Failed to resend verification code');
       }
     } catch (err) {
+      const respData = err.response?.data;
+      if (err.response?.status === 429 || respData?.locked) {
+        const sec = respData?.remainingSeconds || (respData?.remainingMinutes ? respData.remainingMinutes * 60 : 600);
+        triggerOtpLockout(step === 4 ? forgotEmail : email, sec);
+      }
       setError(err.response?.data?.error || 'Failed to resend verification code');
     } finally {
       setResending(false);
@@ -240,7 +297,12 @@ const Login = () => {
         setError(res.error || 'Failed to send password reset code.');
       }
     } catch (err) {
-      const serverErr = err.response?.data?.error;
+      const respData = err.response?.data;
+      if (err.response?.status === 429 || respData?.locked) {
+        const sec = respData?.remainingSeconds || (respData?.remainingMinutes ? respData.remainingMinutes * 60 : 600);
+        triggerOtpLockout(targetEmail, sec);
+      }
+      const serverErr = respData?.error;
       let msg = 'Failed to request password reset code';
       if (Array.isArray(serverErr)) {
         msg = serverErr.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
@@ -309,7 +371,12 @@ const Login = () => {
         setError(res.error || 'Failed to reset password.');
       }
     } catch (err) {
-      const serverErr = err.response?.data?.error;
+      const respData = err.response?.data;
+      if (err.response?.status === 429 || respData?.locked) {
+        const sec = respData?.remainingSeconds || (respData?.remainingMinutes ? respData.remainingMinutes * 60 : 600);
+        triggerOtpLockout(forgotEmail, sec);
+      }
+      const serverErr = respData?.error;
       let msg = 'Failed to reset password';
       if (Array.isArray(serverErr)) {
         msg = serverErr.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
@@ -385,10 +452,10 @@ const Login = () => {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="bg-rose-950/40 border border-rose-500/30 text-rose-200 rounded-2xl p-3.5 mb-6 text-xs font-semibold flex items-center gap-2.5 shadow-lg shadow-rose-950/30"
+              className="bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/30 text-rose-800 dark:text-rose-200 rounded-2xl p-3.5 mb-6 text-xs font-semibold flex items-center gap-2.5 shadow-sm dark:shadow-lg dark:shadow-rose-950/30"
             >
-              <AlertCircle size={16} className="text-rose-400 shrink-0" />
-              <span>{error}</span>
+              <AlertCircle size={16} className="text-rose-600 dark:text-rose-400 shrink-0" />
+              <span className="leading-relaxed">{error}</span>
             </motion.div>
           )}
 
@@ -397,10 +464,10 @@ const Login = () => {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="bg-emerald-950/40 border border-emerald-500/30 text-emerald-200 rounded-2xl p-3.5 mb-6 text-xs font-semibold flex items-center gap-2.5 shadow-lg shadow-emerald-950/30"
+              className="bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 rounded-2xl p-3.5 mb-6 text-xs font-semibold flex items-center gap-2.5 shadow-sm dark:shadow-lg dark:shadow-emerald-950/30"
             >
-              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-              <span>{successMessage}</span>
+              <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="leading-relaxed">{successMessage}</span>
             </motion.div>
           )}
 
@@ -409,10 +476,10 @@ const Login = () => {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="bg-emerald-950/40 border border-emerald-500/30 text-emerald-200 rounded-2xl p-3.5 mb-6 text-xs font-semibold flex items-center gap-2.5"
+              className="bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 rounded-2xl p-3.5 mb-6 text-xs font-semibold flex items-center gap-2.5"
             >
-              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-              <span>{resendMessage}</span>
+              <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="leading-relaxed">{resendMessage}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -421,15 +488,9 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   Email Address
                 </label>
-                {recognizedName && emailStatus === 'exists' && (
-                  <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1">
-                    <UserCheck size={13} />
-                    Hi, {recognizedName}!
-                  </span>
-                )}
               </div>
 
               <div className="relative">
@@ -439,7 +500,7 @@ const Login = () => {
                   value={email}
                   onChange={handleEmailChange}
                   onBlur={() => handleEmailCheck()}
-                  className={`w-full glass-inset pl-4 pr-11 py-3 text-sm text-white focus:outline-none transition-all duration-200 ${
+                  className={`w-full glass-inset pl-4 pr-11 py-3 text-sm text-[var(--text-primary)] dark:text-white focus:outline-none transition-all duration-200 ${
                     emailStatus === 'exists'
                       ? 'border-emerald-400/50 focus:ring-1 focus:ring-emerald-400'
                       : emailStatus === 'not_found'
@@ -480,23 +541,9 @@ const Login = () => {
             </div>
             
             <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-                  Password
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForgotEmail(email || '');
-                    setStep(3);
-                    setError('');
-                    setSuccessMessage('');
-                  }}
-                  className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 hover:underline transition-colors"
-                >
-                  Forgot Password?
-                </button>
-              </div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                Password
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -508,17 +555,31 @@ const Login = () => {
                       handleEmailCheck();
                     }
                   }}
-                  className="w-full glass-inset pl-4 pr-11 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  className="w-full glass-inset pl-4 pr-11 py-3 text-sm text-[var(--text-primary)] dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-300 transition-colors p-1"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors p-1"
                   title={showPassword ? 'Hide password' : 'View password'}
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotEmail(email || '');
+                    setStep(3);
+                    setError('');
+                    setSuccessMessage('');
+                  }}
+                  className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors cursor-pointer"
+                >
+                  Forgot Password?
                 </button>
               </div>
             </div>
@@ -526,7 +587,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={isSubmitting || emailStatus === 'not_found'}
-              className="w-full glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 mt-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -542,17 +603,17 @@ const Login = () => {
 
         {step === 2 && (
           <form onSubmit={handleVerifyOtp} className="space-y-5">
-            <div className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/25 text-center">
-              <p className="text-xs text-slate-300">
+            <div className="p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/25 border border-emerald-500/25 text-center">
+              <p className="text-xs text-slate-700 dark:text-slate-300">
                 We've sent a 6-digit authentication code to:
               </p>
-              <p className="text-sm font-bold text-emerald-300 mt-1 truncate">
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300 mt-1 truncate">
                 {email}
               </p>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-2 text-center">
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 text-center">
                 Enter 6-Digit Code
               </label>
               <input
@@ -561,7 +622,7 @@ const Login = () => {
                 maxLength={6}
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                className="w-full glass-inset px-4 py-3.5 text-center text-2xl font-black tracking-[0.4em] text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                className="w-full glass-inset px-4 py-3.5 text-center text-2xl font-black tracking-[0.4em] text-[var(--text-primary)] dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 placeholder="••••••"
                 autoFocus
               />
@@ -569,11 +630,16 @@ const Login = () => {
 
             <button
               type="submit"
-              disabled={isSubmitting || otpCode.length < 6}
-              className="w-full glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={isSubmitting || otpCode.length < 6 || otpLockoutTimer > 0}
+              className="w-full glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : otpLockoutTimer > 0 ? (
+                <>
+                  <Lock size={18} />
+                  <span>Locked ({Math.floor(otpLockoutTimer / 60)}:{String(otpLockoutTimer % 60).padStart(2, '0')})</span>
+                </>
               ) : (
                 <>
                   <ShieldCheck size={18} />
@@ -586,7 +652,7 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-slate-400 hover:text-white font-semibold transition-colors"
+                className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-semibold transition-colors cursor-pointer"
               >
                 &larr; Back to Login
               </button>
@@ -594,15 +660,24 @@ const Login = () => {
               <button
                 type="button"
                 onClick={handleResendOtp}
-                disabled={resendTimer > 0 || resending}
-                className={`flex items-center gap-1 font-bold ${
-                  resendTimer > 0
-                    ? 'text-slate-500 cursor-not-allowed'
-                    : 'text-emerald-400 hover:text-emerald-300 hover:underline'
+                disabled={resendTimer > 0 || resending || otpLockoutTimer > 0}
+                className={`flex items-center gap-1 font-bold cursor-pointer ${
+                  resendTimer > 0 || otpLockoutTimer > 0
+                    ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                    : 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:underline'
                 }`}
               >
-                <RefreshCw size={13} className={resending ? 'animate-spin' : ''} />
-                <span>{resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Code'}</span>
+                {otpLockoutTimer > 0 ? (
+                  <>
+                    <Lock size={13} />
+                    <span>Locked ({Math.floor(otpLockoutTimer / 60)}:{String(otpLockoutTimer % 60).padStart(2, '0')})</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={13} className={resending ? 'animate-spin' : ''} />
+                    <span>{resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Code'}</span>
+                  </>
+                )}
               </button>
             </div>
           </form>
@@ -610,15 +685,15 @@ const Login = () => {
 
         {step === 3 && (
           <form onSubmit={handleRequestForgotPassword} className="space-y-5">
-            <div className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/25 text-center">
-              <KeyRound size={28} className="text-emerald-400 mx-auto mb-2" />
-              <p className="text-xs text-slate-300">
+            <div className="p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/25 border border-emerald-500/25 text-center">
+              <KeyRound size={28} className="text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
+              <p className="text-xs text-slate-700 dark:text-slate-300">
                 Enter your registered email address and we'll send you a 6-digit verification code to reset your password.
               </p>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Registered Email Address
               </label>
               <input
@@ -626,7 +701,7 @@ const Login = () => {
                 required
                 value={forgotEmail}
                 onChange={(e) => setForgotEmail(e.target.value)}
-                className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                className="w-full glass-inset px-4 py-3 text-sm text-[var(--text-primary)] dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
                 placeholder="you@example.com"
                 autoFocus
               />
@@ -654,7 +729,7 @@ const Login = () => {
                   setStep(1);
                   setError('');
                 }}
-                className="text-xs text-slate-400 hover:text-white font-semibold transition-colors"
+                className="text-xs text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-semibold transition-colors"
               >
                 &larr; Back to Login
               </button>
@@ -664,20 +739,20 @@ const Login = () => {
 
         {step === 4 && (
           <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
-            <div className="p-3.5 rounded-2xl bg-emerald-950/25 border border-emerald-500/25 text-center">
-              <p className="text-xs text-slate-300">
+            <div className="p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/25 border border-emerald-500/25 text-center">
+              <p className="text-xs text-slate-700 dark:text-slate-300">
                 We've dispatched a 6-digit code to:
               </p>
-              <p className="text-sm font-bold text-emerald-300 truncate">
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300 truncate">
                 {forgotEmail}
               </p>
-              <p className="text-[11px] text-emerald-300/90 mt-2 font-medium bg-emerald-500/10 py-1.5 px-2.5 rounded-lg border border-emerald-500/20">
+              <p className="text-[11px] text-emerald-800 dark:text-emerald-300/90 mt-2 font-medium bg-emerald-500/10 py-1.5 px-2.5 rounded-lg border border-emerald-500/20">
                 💡 Please check your <strong>Spam / Junk</strong> folder if the mail isn't in your inbox.
               </p>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 text-center">
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 text-center">
                 6-Digit Verification Code
               </label>
               <input
@@ -686,14 +761,14 @@ const Login = () => {
                 maxLength={6}
                 value={resetOtpCode}
                 onChange={(e) => setResetOtpCode(e.target.value.replace(/\D/g, ''))}
-                className="w-full glass-inset px-4 py-2.5 text-center text-xl font-black tracking-[0.3em] text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                className="w-full glass-inset px-4 py-2.5 text-center text-xl font-black tracking-[0.3em] text-[var(--text-primary)] dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 placeholder="••••••"
                 autoFocus
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 New Password
               </label>
               <div className="relative">
@@ -706,13 +781,13 @@ const Login = () => {
                     if (!showPasswordRules) setShowPasswordRules(true);
                   }}
                   onFocus={() => setShowPasswordRules(true)}
-                  className="w-full glass-inset pl-4 pr-11 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  className="w-full glass-inset pl-4 pr-11 py-2.5 text-sm text-[var(--text-primary)] dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
                   placeholder="••••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-300 transition-colors p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors p-1"
                   tabIndex={-1}
                 >
                   {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -726,7 +801,7 @@ const Login = () => {
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Confirm New Password
               </label>
               <div className="relative">
@@ -735,13 +810,13 @@ const Login = () => {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full glass-inset pl-4 pr-11 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  className="w-full glass-inset pl-4 pr-11 py-2.5 text-sm text-[var(--text-primary)] dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
                   placeholder="••••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-300 transition-colors p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors p-1"
                   tabIndex={-1}
                 >
                   {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -751,11 +826,16 @@ const Login = () => {
 
             <button
               type="submit"
-              disabled={isSubmitting || resetOtpCode.length < 6}
-              className="w-full glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed mt-2"
+              disabled={isSubmitting || resetOtpCode.length < 6 || otpLockoutTimer > 0}
+              className="w-full glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed mt-2 cursor-pointer"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : otpLockoutTimer > 0 ? (
+                <>
+                  <Lock size={18} />
+                  <span>Locked ({Math.floor(otpLockoutTimer / 60)}:{String(otpLockoutTimer % 60).padStart(2, '0')})</span>
+                </>
               ) : (
                 <>
                   <ShieldCheck size={18} />
@@ -771,7 +851,7 @@ const Login = () => {
                   setStep(1);
                   setError('');
                 }}
-                className="text-slate-400 hover:text-white font-semibold transition-colors"
+                className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-semibold transition-colors cursor-pointer"
               >
                 &larr; Cancel & Login
               </button>
@@ -779,15 +859,24 @@ const Login = () => {
               <button
                 type="button"
                 onClick={handleResendOtp}
-                disabled={resendTimer > 0 || resending}
-                className={`flex items-center gap-1 font-bold ${
-                  resendTimer > 0
-                    ? 'text-slate-500 cursor-not-allowed'
-                    : 'text-emerald-400 hover:text-emerald-300 hover:underline'
+                disabled={resendTimer > 0 || resending || otpLockoutTimer > 0}
+                className={`flex items-center gap-1 font-bold cursor-pointer ${
+                  resendTimer > 0 || otpLockoutTimer > 0
+                    ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                    : 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:underline'
                 }`}
               >
-                <RefreshCw size={13} className={resending ? 'animate-spin' : ''} />
-                <span>{resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}</span>
+                {otpLockoutTimer > 0 ? (
+                  <>
+                    <Lock size={13} />
+                    <span>Locked ({Math.floor(otpLockoutTimer / 60)}:{String(otpLockoutTimer % 60).padStart(2, '0')})</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={13} className={resending ? 'animate-spin' : ''} />
+                    <span>{resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}</span>
+                  </>
+                )}
               </button>
             </div>
           </form>

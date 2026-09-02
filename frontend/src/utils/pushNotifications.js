@@ -301,9 +301,12 @@ export async function subscribeToPushNotifications() {
         vapidPublicKey = res.data.publicKey;
       }
     } catch (err) {
-      console.warn('[VAPID FETCH WARNING]: Using fallback key', err.message);
-      vapidPublicKey = 'BKU_2thwlK44Rovjnm2PrMU30q14G1vm11VV7JPEiVOhfHNnyFSaxIlrZ3zfY9VZKhj_6Ump_5REfOvyVdodeQo';
+      console.warn('[VAPID FETCH WARNING]: Failed to fetch VAPID public key', err.message);
     }
+  }
+
+  if (!vapidPublicKey) {
+    throw new Error('Push notification server key is not available. Please try again later.');
   }
 
   const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);

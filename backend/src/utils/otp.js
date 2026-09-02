@@ -9,6 +9,12 @@ import {
   verifySupabaseEmailOTP 
 } from './supabase.js';
 
+import { 
+  checkOtpLockout, 
+  recordFailedOtpAttempt, 
+  resetOtpAttempts 
+} from './securityTracker.js';
+
 const prisma = new PrismaClient();
 
 /**
@@ -23,6 +29,13 @@ export function generateOTP() {
  */
 export async function sendEmailOTP(email, type, extraData = {}) {
   const normalizedEmail = email.toLowerCase().trim();
+
+  // Check if locked out
+  const lockout = checkOtpLockout(normalizedEmail, type);
+  if (lockout.isLocked) {
+    throw new Error(`Too many incorrect OTP attempts. You are locked out for ${lockout.remainingMinutes} more minute(s).`);
+  }
+
   const code = generateOTP();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
@@ -41,20 +54,13 @@ export async function sendEmailOTP(email, type, extraData = {}) {
     }
   });
 
-  console.log(`\n========================================`);
-  console.log(`[EMAIL AUTH OTP - ${type}]`);
-  console.log(`Recipient: ${normalizedEmail}`);
-  console.log(`Code: ${code}`);
-  console.log(`Supabase Auth: ${isSupabaseConfigured() ? 'ACTIVE (Sending via Supabase Auth)' : 'INACTIVE'}`);
-  console.log(`Resend / Mailer: ACTIVE`);
-  console.log(`Expires in: 10 minutes`);
-  console.log(`========================================\n`);
+  // Log dispatch notice without revealing the OTP code
+  console.log(`[EMAIL AUTH] OTP dispatched for ${type} to ${normalizedEmail} (Expires in 10m)`);
 
   // Dispatch email in background without blocking API response
   (async () => {
     try {
       if (isSupabaseConfigured()) {
-        console.log(`[SUPABASE AUTH] Dispatching ${type} verification to ${normalizedEmail}...`);
         if (type === 'REGISTER' && extraData.password) {
           await signUpWithSupabase(normalizedEmail, extraData.password, extraData.name);
         } else if (type === 'CHANGE_PASSWORD') {
@@ -72,15 +78,26 @@ export async function sendEmailOTP(email, type, extraData = {}) {
     }
   })();
 
-  return { code, expiresAt };
+  return { success: true, expiresAt };
 }
 
 /**
- * Verify an OTP code for an email and type
+ * Verify an OTP code for an email and type with 3-attempt limit and 10-minute lockout
  */
 export async function verifyEmailOTP(email, code, type) {
   const normalizedEmail = email.toLowerCase().trim();
-  const normalizedCode = code.toString().trim();
+  const normalizedCode = code ? code.toString().trim() : '';
+
+  // 1. Check if user is locked out
+  const lockout = checkOtpLockout(normalizedEmail, type);
+  if (lockout.isLocked) {
+    return {
+      valid: false,
+      locked: true,
+      remainingMinutes: lockout.remainingMinutes,
+      error: `Too many incorrect attempts. Verification is locked for ${lockout.remainingMinutes} more minute(s).`
+    };
+  }
 
   const record = await prisma.emailVerification.findFirst({
     where: {
@@ -96,6 +113,7 @@ export async function verifyEmailOTP(email, code, type) {
       return { valid: false, error: 'Verification code has expired. Please request a new one.' };
     }
     await prisma.emailVerification.delete({ where: { id: record.id } });
+    resetOtpAttempts(normalizedEmail, type);
     return { valid: true };
   }
 
@@ -105,9 +123,29 @@ export async function verifyEmailOTP(email, code, type) {
       await prisma.emailVerification.deleteMany({
         where: { email: normalizedEmail, type }
       });
+      resetOtpAttempts(normalizedEmail, type);
       return { valid: true, supabaseData: supabaseCheck.data };
     }
   }
 
-  return { valid: false, error: 'Invalid verification code. Please check and try again.' };
+  // 2. Track failed attempt
+  const attemptResult = recordFailedOtpAttempt(normalizedEmail, type);
+  if (attemptResult.locked) {
+    // Invalidate any active code on 3rd failure
+    await prisma.emailVerification.deleteMany({
+      where: { email: normalizedEmail, type }
+    });
+    return {
+      valid: false,
+      locked: true,
+      remainingMinutes: 10,
+      error: 'Too many incorrect OTP attempts (3/3). You are temporarily locked out for 10 minutes.'
+    };
+  }
+
+  return {
+    valid: false,
+    remainingAttempts: attemptResult.remainingAttempts,
+    error: `Invalid verification code. ${attemptResult.remainingAttempts} attempt(s) remaining before a 10-minute lockout.`
+  };
 }

@@ -7,15 +7,15 @@ import { formatCurrency, getCurrencySymbol } from '../utils/currency';
 const CustomTooltip = ({ active, payload, label, userCurrency }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#031512]/90 backdrop-blur-xl border border-white/10 border-t-emerald-400/40 p-3.5 rounded-2xl shadow-2xl">
-        <p className="font-bold text-white text-xs mb-2">
+      <div className="bg-white/95 dark:bg-[#031512]/95 backdrop-blur-xl border border-[#C8E3DC] dark:border-white/10 dark:border-t-emerald-400/40 p-3.5 rounded-2xl shadow-xl dark:shadow-2xl">
+        <p className="font-bold text-slate-900 dark:text-white text-xs mb-2">
           {label ? format(new Date(label), 'MMM dd, yyyy') : ''}
         </p>
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-2 text-xs">
             <div className="w-2 h-2 rounded-full shadow-sm" style={{ backgroundColor: entry.color }} />
-            <span className="text-slate-400 capitalize font-medium">{entry.name}:</span>
-            <span className="font-bold text-white">{formatCurrency(entry.value || 0, userCurrency)}</span>
+            <span className="text-slate-600 dark:text-slate-400 capitalize font-medium">{entry.name}:</span>
+            <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(entry.value || 0, userCurrency)}</span>
           </div>
         ))}
       </div>

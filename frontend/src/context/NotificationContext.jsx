@@ -140,3 +140,5 @@ export const useNotifications = () => {
   }
   return context;
 };
+
+export const useNotification = useNotifications;

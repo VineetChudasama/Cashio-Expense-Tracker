@@ -86,15 +86,19 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/', [
-  body('amount').isFloat({ gt: 0 }),
-  body('category').notEmpty(),
-  body('date').isISO8601()
+  body('amount').isFloat({ gt: 0, lte: 100000 }).withMessage('Expense amount must be greater than 0 and cannot exceed 100,000'),
+  body('category').notEmpty().withMessage('Category is required'),
+  body('date').isISO8601().withMessage('Valid date is required')
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ success: false, error: errors.array() });
 
   try {
     const { amount, category, description, date, isRecurring, recurringInterval } = req.body;
+    const parsedAmount = parseFloat(amount);
+    if (parsedAmount > 100000) {
+      return res.status(400).json({ success: false, error: 'Maximum limit of 100,000 exceeded per expense created' });
+    }
     if (isRecurring && !recurringInterval) {
       return res.status(400).json({ success: false, error: 'recurringInterval required when isRecurring is true' });
     }
@@ -102,7 +106,7 @@ router.post('/', [
     const expense = await prisma.expense.create({
       data: {
         userId: req.user.id,
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         category,
         description: description || '',
         date: new Date(date),
@@ -115,7 +119,7 @@ router.post('/', [
     checkAndTriggerSpendingAlerts({
       userId: req.user.id,
       category,
-      newExpenseAmount: parseFloat(amount),
+      newExpenseAmount: parsedAmount,
       expenseDate: date
     }).catch(err => console.error('[EXPENSE SPENDING ALERT ERROR]:', err));
 
@@ -131,6 +135,12 @@ router.put('/:id', async (req, res) => {
     if (!existing) return res.status(404).json({ success: false, error: 'Expense not found' });
     
     const { amount, category, description, date, isRecurring, recurringInterval } = req.body;
+    if (amount !== undefined) {
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > 100000) {
+        return res.status(400).json({ success: false, error: 'Expense amount must be greater than 0 and cannot exceed 100,000' });
+      }
+    }
     
     const expense = await prisma.expense.update({
       where: { id: req.params.id },

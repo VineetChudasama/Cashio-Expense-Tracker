@@ -446,27 +446,39 @@ const NotificationSettings = () => {
           </div>
         )}
 
-        {/* Registered Devices Overview */}
-        {registeredDevices.length > 0 && (
-          <div className="mt-4 pt-3.5 border-t border-white/[0.06] flex flex-wrap items-center gap-2">
-            <span className={`text-[11px] font-semibold ${isDark ? 'text-slate-400' : 'text-[#4F736C]'}`}>
-              Registered devices ({registeredDevices.length}):
-            </span>
-            {registeredDevices.map((dev, idx) => (
-              <span
-                key={dev.id || idx}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
-                  dev.deviceType === 'mobile'
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                    : 'bg-teal-500/10 border-teal-500/20 text-teal-400'
-                }`}
-              >
-                {dev.deviceType === 'mobile' ? <Smartphone size={11} /> : <Laptop size={11} />}
-                <span>{dev.deviceName || (dev.deviceType === 'mobile' ? 'Mobile' : 'Desktop')}</span>
+        {/* Registered Devices Overview (Deduplicated) */}
+        {(() => {
+          const seen = new Set();
+          const uniqueDevices = registeredDevices.filter(dev => {
+            const name = dev.deviceName || (dev.deviceType === 'mobile' ? 'Mobile' : 'Desktop');
+            if (seen.has(name)) return false;
+            seen.add(name);
+            return true;
+          });
+
+          if (uniqueDevices.length === 0) return null;
+
+          return (
+            <div className="mt-4 pt-3.5 border-t border-white/[0.06] flex flex-wrap items-center gap-2">
+              <span className={`text-[11px] font-semibold ${isDark ? 'text-slate-400' : 'text-[#4F736C]'}`}>
+                Registered devices ({uniqueDevices.length}):
               </span>
-            ))}
-          </div>
-        )}
+              {uniqueDevices.map((dev, idx) => (
+                <span
+                  key={dev.id || dev.deviceName || idx}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
+                    dev.deviceType === 'mobile'
+                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                      : 'bg-teal-500/10 border-teal-500/20 text-teal-400'
+                  }`}
+                >
+                  {dev.deviceType === 'mobile' ? <Smartphone size={11} /> : <Laptop size={11} />}
+                  <span>{dev.deviceName || (dev.deviceType === 'mobile' ? 'Mobile' : 'Desktop')}</span>
+                </span>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Category Notification Preferences */}

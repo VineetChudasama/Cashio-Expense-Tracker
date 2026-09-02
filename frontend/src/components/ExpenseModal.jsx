@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { expenses } from '../lib/api';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +22,7 @@ const ExpenseModal = ({ expense, onClose }) => {
     recurringInterval: 'monthly'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     if (expense) {
@@ -38,6 +39,16 @@ const ExpenseModal = ({ expense, onClose }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'amount') {
+      if (value !== '') {
+        const valNum = parseFloat(value);
+        if (!isNaN(valNum) && valNum > 100000) {
+          setErrorMessage(`Maximum limit is ${currencySymbol}100,000 per expense.`);
+          return; // Do not let user enter a number more than 100,000
+        }
+      }
+      setErrorMessage('');
+    }
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -46,10 +57,22 @@ const ExpenseModal = ({ expense, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage('');
+    
+    const numAmount = Number(formData.amount);
+    if (!numAmount || isNaN(numAmount) || numAmount <= 0) {
+      setErrorMessage('Please enter a valid amount.');
+      return;
+    }
+    if (numAmount > 100000) {
+      setErrorMessage(`Maximum limit is ${currencySymbol}100,000 per expense.`);
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
-      const payload = { ...formData, amount: Number(formData.amount) };
+      const payload = { ...formData, amount: numAmount };
       
       if (expense) {
         await expenses.update(expense.id, payload);
@@ -59,7 +82,9 @@ const ExpenseModal = ({ expense, onClose }) => {
       onClose(true);
     } catch (error) {
       console.error("Failed to save expense", error);
-      alert('Error saving expense');
+      const serverErr = error.response?.data?.error;
+      const msg = typeof serverErr === 'string' ? serverErr : (serverErr?.[0]?.msg || 'Error saving expense');
+      setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -86,16 +111,29 @@ const ExpenseModal = ({ expense, onClose }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
+          {errorMessage && (
+            <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2">
+              <AlertCircle size={15} className="shrink-0 text-rose-400" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           <div>
-            <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <CurrencyIcon currency={userCurrency} size={13} className="text-emerald-400" />
-              <span>Amount ({currencySymbol})</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <CurrencyIcon currency={userCurrency} size={13} className="text-emerald-400" />
+                <span>Amount ({currencySymbol})</span>
+              </label>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-md border border-emerald-400/25">
+                Max {currencySymbol}100,000
+              </span>
+            </div>
             <input
               type="number"
               name="amount"
               required
               min="0.01"
+              max="100000"
               step="0.01"
               value={formData.amount}
               onChange={handleChange}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -22,7 +22,11 @@ import {
   X,
   RefreshCw,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Camera,
+  Check,
+  RotateCcw,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { users as usersApi } from '../lib/api';
@@ -30,6 +34,7 @@ import { format } from 'date-fns';
 import PasswordRequirements, { checkPasswordCriteria } from '../components/PasswordRequirements';
 import NotificationSettings from '../components/NotificationSettings';
 import CategoryLimitsSettings from '../components/CategoryLimitsSettings';
+import { useTheme } from '../context/ThemeContext';
 import {
   SUPPORTED_CURRENCIES,
   getCurrencySymbol,
@@ -39,15 +44,90 @@ import {
   CurrencyIcon
 } from '../utils/currency';
 
+export const PRESET_AVATARS = [
+  {
+    id: 'homer',
+    name: 'Homer',
+    subtitle: 'Money Phone',
+    src: '/avatars/homer.jpg'
+  },
+  {
+    id: 'stewie',
+    name: 'Stewie',
+    subtitle: 'Stack Master',
+    src: '/avatars/stewie.png'
+  },
+  {
+    id: 'steve',
+    name: 'Steve',
+    subtitle: 'Block Hustler',
+    src: '/avatars/steve.png'
+  },
+  {
+    id: 'spiderman',
+    name: 'Spider-Man',
+    subtitle: 'Web Millionaire',
+    src: '/avatars/spiderman.png'
+  },
+  {
+    id: 'scrooge',
+    name: 'Scrooge',
+    subtitle: 'Gold Vault',
+    src: '/avatars/scrooge.png'
+  },
+  {
+    id: 'squidward',
+    name: 'Squidward',
+    subtitle: 'Drip Tentacles',
+    src: '/avatars/squidward.jpg'
+  },
+  {
+    id: 'anime-girl',
+    name: 'Cash Girl',
+    subtitle: 'Pink Luxe',
+    src: '/avatars/anime-girl.png'
+  },
+  {
+    id: 'mandalorian',
+    name: 'Mando',
+    subtitle: 'Beskar Bounty',
+    src: '/avatars/mandalorian.png'
+  },
+  {
+    id: 'batman',
+    name: 'Batman',
+    subtitle: 'Wayne Wealth',
+    src: '/avatars/batman.png'
+  },
+  {
+    id: 'catwoman',
+    name: 'Catwoman',
+    subtitle: 'Diamond Heist',
+    src: '/avatars/catwoman.png'
+  }
+];
+
 const Profile = () => {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const { user, updateUser, logout } = useAuth();
-  const [profileData, setProfileData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState(() => {
+    try {
+      const cached = localStorage.getItem('flow_profile_cache');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return user || null;
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      if (localStorage.getItem('flow_profile_cache')) return false;
+    } catch {}
+    return !user;
+  });
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [currency, setCurrency] = useState('USD ($)');
+  const [name, setName] = useState(() => profileData?.name || user?.name || '');
+  const [email, setEmail] = useState(() => profileData?.email || user?.email || '');
+  const [currency, setCurrency] = useState(() => profileData?.currency || user?.currency || localStorage.getItem('flow_currency') || 'USD ($)');
   const [isSavingInfo, setIsSavingInfo] = useState(false);
   const [infoSuccess, setInfoSuccess] = useState('');
   const [infoError, setInfoError] = useState('');
@@ -86,11 +166,46 @@ const Profile = () => {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
+  // Avatar Management State
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+  const [savingAvatarSrc, setSavingAvatarSrc] = useState(null);
+  const [avatarSuccess, setAvatarSuccess] = useState('');
+
+  const currentAvatar = profileData?.avatar || user?.avatar || localStorage.getItem('flow_user_avatar') || '';
+
+  const handleSelectAvatar = async (avatarSrc) => {
+    if (isSavingAvatar || currentAvatar === avatarSrc) return;
+    setIsSavingAvatar(true);
+    setSavingAvatarSrc(avatarSrc);
+    setAvatarSuccess('');
+
+    try {
+      const res = await usersApi.updateProfile({ avatar: avatarSrc });
+      if (res.success) {
+        setProfileData(prev => ({ ...prev, avatar: avatarSrc }));
+        updateUser({ avatar: avatarSrc });
+        setAvatarSuccess(avatarSrc ? 'Profile photo updated successfully!' : 'Profile photo reset to default initial.');
+        setTimeout(() => setAvatarSuccess(''), 4000);
+      }
+    } catch (err) {
+      console.error('Failed to update avatar:', err);
+    } finally {
+      setIsSavingAvatar(false);
+      setSavingAvatarSrc(null);
+    }
+  };
+
   const fetchProfile = async () => {
     try {
       const res = await usersApi.getProfile();
       if (res.success) {
         setProfileData(res.data);
+        localStorage.setItem('flow_profile_cache', JSON.stringify(res.data));
+        if (res.data.avatar) {
+          localStorage.setItem('flow_user_avatar', res.data.avatar);
+          updateUser({ avatar: res.data.avatar });
+        }
         setName(res.data.name || '');
         setEmail(res.data.email || '');
         if (res.data.currency) {
@@ -401,109 +516,396 @@ const Profile = () => {
     );
   }
 
-  const joinDate = profileData?.createdAt 
-    ? format(new Date(profileData.createdAt), 'MMMM yyyy')
+  const rawJoinDate = profileData?.createdAt || user?.createdAt;
+  const joinDate = rawJoinDate 
+    ? format(new Date(rawJoinDate), 'MMMM yyyy')
     : 'Recent Member';
 
   const savedActiveCurrency = profileData?.currency || user?.currency || 'USD ($)';
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.08, delayChildren: 0.02 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 14 },
+    show: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] }
+    }
+  };
+
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-5xl mx-auto pb-12 px-1 sm:px-0">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6 sm:space-y-8 max-w-5xl mx-auto pb-12 px-1 sm:px-0"
+    >
       {/* Header Banner */}
-      <div className="glass-card p-5 sm:p-6 lg:p-8 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 relative z-10">
-          {/* Avatar */}
-          <div className="relative group">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 p-[2px] shadow-xl shadow-emerald-500/25">
-              <div className="w-full h-full bg-[#031512] rounded-3xl flex items-center justify-center text-2xl sm:text-3xl font-black text-white shadow-inner">
-                {profileData?.name?.charAt(0).toUpperCase() || 'U'}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.28, ease: 'easeOut' }}
+        className="glass-card p-5 sm:p-6 lg:p-8 relative overflow-hidden group hover:border-emerald-400/30 transition-all duration-300"
+      >
+        {/* Ambient top-corner gradient aura like Dashboard */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-emerald-500/10 via-teal-500/5 to-transparent rounded-bl-full pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+        <div className="flex items-center sm:items-start gap-4 sm:gap-6 relative z-10">
+          {/* Avatar (Click to open avatar picker modal) */}
+          <div 
+            onClick={() => setShowAvatarModal(true)}
+            className="relative group cursor-pointer shrink-0"
+            title="Click to change profile photo"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 p-[2px] shadow-xl shadow-emerald-500/25 overflow-hidden group-hover:scale-105 transition-all duration-200">
+              <div className={`w-full h-full rounded-3xl flex items-center justify-center text-2xl sm:text-3xl font-black shadow-inner overflow-hidden ${
+                isDark ? 'bg-[#031512] text-white' : 'bg-[#EDF6F3] text-emerald-950'
+              }`}>
+                {currentAvatar ? (
+                  <img
+                    src={currentAvatar}
+                    alt={profileData?.name || user?.name || 'Profile'}
+                    loading="eager"
+                    decoding="sync"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  (profileData?.name || user?.name || 'U').charAt(0).toUpperCase()
+                )}
               </div>
             </div>
-            <div className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-emerald-500 text-[#030F0D] p-1 sm:p-1.5 rounded-xl border border-white/30 shadow-lg">
-              <Sparkles size={13} />
+            <div className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-emerald-500 text-[#030F0D] p-1.5 rounded-xl border border-white/30 shadow-lg group-hover:scale-110 group-hover:bg-emerald-400 transition-all">
+              <Camera size={13} />
             </div>
           </div>
 
           {/* User Info */}
-          <div className="text-center sm:text-left flex-1 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 mb-1">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight truncate">
-                {profileData?.name || 'User Profile'}
+          <div className="text-left flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+              <h1 className={`text-xl sm:text-2xl lg:text-3xl font-black tracking-tight truncate ${
+                isDark ? 'text-white' : 'text-slate-900'
+              }`}>
+                {profileData?.name || user?.name || 'User Profile'}
               </h1>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 glass-badge self-center sm:self-auto">
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest border shrink-0 ${
+                isDark
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+                  : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+              }`}>
                 <ShieldCheck size={12} />
                 Verified Pro
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-300 font-medium mb-2.5 flex items-center justify-center sm:justify-start gap-1.5 truncate">
-              <Mail size={14} className="text-emerald-400 shrink-0" />
-              <span className="truncate">{profileData?.email}</span>
+            <p className={`text-xs sm:text-sm font-medium mb-2.5 flex items-center gap-1.5 truncate ${
+              isDark ? 'text-slate-300' : 'text-slate-600'
+            }`}>
+              <Mail size={14} className="text-emerald-500 dark:text-emerald-400 shrink-0" />
+              <span className="truncate">{profileData?.email || user?.email || ''}</span>
             </p>
-            <div className="flex items-center justify-center sm:justify-start gap-4 text-xs text-slate-400 font-medium">
-              <span className="flex items-center gap-1.5">
-                <Calendar size={13} className="text-slate-400" />
+            <div className="flex flex-wrap items-center gap-3 text-xs font-medium">
+              <span className={`flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <Calendar size={13} />
                 Joined {joinDate}
               </span>
+              <span className="text-emerald-500/30 dark:text-white/20">•</span>
+              <button
+                type="button"
+                onClick={() => setShowAvatarModal(true)}
+                className="inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold transition-colors cursor-pointer py-0.5"
+              >
+                <Camera size={13} />
+                <span>Change Photo</span>
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
+
+      {/* Avatar Selection Pop-up Modal */}
+      <AnimatePresence>
+        {showAvatarModal && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowAvatarModal(false);
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+              className={`w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col rounded-3xl shadow-2xl border ${
+                isDark
+                  ? 'bg-[#031512]/95 border-white/15 text-white shadow-black/80'
+                  : 'bg-white/95 border-[#C8E3DC] text-slate-900 shadow-emerald-950/15'
+              }`}
+            >
+              {/* Modal Header */}
+              <div className={`p-4 sm:p-6 border-b flex items-center justify-between shrink-0 ${
+                isDark ? 'border-white/[0.08] bg-white/[0.02]' : 'border-[#E2EFEB] bg-[#F7FBF9]'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-2xl border ${
+                    isDark
+                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-400/20'
+                      : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                  }`}>
+                    <Camera size={20} />
+                  </div>
+                  <div>
+                    <h2 className={`text-base sm:text-lg font-extrabold tracking-wide flex items-center gap-2 ${
+                      isDark ? 'text-white' : 'text-slate-900'
+                    }`}>
+                      <span>Choose Profile Avatar</span>
+                      <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                        isDark
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+                          : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      }`}>
+                        10 Characters
+                      </span>
+                    </h2>
+                    <p className={`text-xs font-medium mt-0.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-600'
+                    }`}>
+                      Select an official character photo for your profile and shared splits.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAvatarModal(false)}
+                  className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                    isDark
+                      ? 'text-slate-400 hover:text-white hover:bg-white/10'
+                      : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                  }`}
+                  title="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Modal Body - Scrollable 10 Avatars Grid */}
+              <div className={`p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[60vh] ${
+                isDark ? 'bg-transparent' : 'bg-[#FAFCFB]'
+              }`}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-3.5">
+                  {PRESET_AVATARS.map((avatar) => {
+                    const isSelected = currentAvatar === avatar.src;
+                    const isSavingThis = isSavingAvatar && savingAvatarSrc === avatar.src;
+
+                    return (
+                      <motion.div
+                        key={avatar.id}
+                        whileHover={{ y: -3, scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleSelectAvatar(avatar.src)}
+                        className={`relative rounded-2xl border p-2.5 transition-all cursor-pointer flex flex-col items-center group ${
+                          isSelected
+                            ? isDark
+                              ? 'bg-emerald-500/20 border-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/50'
+                              : 'bg-emerald-50 border-emerald-500 shadow-md shadow-emerald-500/20 ring-2 ring-emerald-400/50'
+                            : isDark
+                              ? 'bg-[#06221c]/60 hover:bg-[#082e26] border-white/10 hover:border-emerald-400/40 shadow-xs'
+                              : 'bg-white hover:bg-emerald-50/50 border-[#D2E7E1] hover:border-emerald-400 shadow-sm hover:shadow-md hover:shadow-emerald-500/10'
+                        }`}
+                      >
+                        {/* Photo Thumbnail */}
+                        <div className={`w-full aspect-square rounded-xl overflow-hidden relative mb-2 shadow-inner border ${
+                          isDark ? 'bg-black/40 border-white/10' : 'bg-slate-100 border-[#D2E7E1]'
+                        }`}>
+                          <img
+                            src={avatar.src}
+                            alt={avatar.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                          {isSelected && (
+                            <div className="absolute top-1.5 right-1.5 bg-emerald-500 text-white p-1 rounded-full shadow-md border border-white/40">
+                              <Check size={11} strokeWidth={3.5} />
+                            </div>
+                          )}
+                          {isSavingThis && (
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center">
+                              <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Character Label */}
+                        <span className={`text-xs font-bold transition-colors ${
+                          isSelected
+                            ? isDark ? 'text-emerald-300' : 'text-emerald-900'
+                            : isDark ? 'text-white group-hover:text-emerald-300' : 'text-slate-800 group-hover:text-emerald-700'
+                        }`}>
+                          {avatar.name}
+                        </span>
+                        <span className={`text-[10px] font-medium ${
+                          isSelected
+                            ? isDark ? 'text-emerald-400/80' : 'text-emerald-700/80'
+                            : isDark ? 'text-slate-400' : 'text-slate-500'
+                        }`}>
+                          {avatar.subtitle}
+                        </span>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {avatarSuccess && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-3 rounded-2xl border text-xs font-semibold flex items-center gap-2 ${
+                      isDark
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                        : 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-xs'
+                    }`}
+                  >
+                    <CheckCircle2 size={15} className={`shrink-0 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                    <span>{avatarSuccess}</span>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className={`p-4 sm:p-5 border-t flex items-center justify-between shrink-0 ${
+                isDark ? 'border-white/[0.08] bg-white/[0.02]' : 'border-[#E2EFEB] bg-[#F7FBF9]'
+              }`}>
+                {currentAvatar ? (
+                  <button
+                    type="button"
+                    disabled={isSavingAvatar}
+                    onClick={() => handleSelectAvatar('')}
+                    className={`text-xs font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded-xl border transition-all cursor-pointer ${
+                      isDark
+                        ? 'text-slate-300 hover:text-rose-400 border-white/10 hover:border-rose-500/30 bg-white/[0.02]'
+                        : 'text-slate-600 hover:text-rose-600 border-[#D2E7E1] hover:border-rose-300 bg-white hover:bg-rose-50 shadow-xs'
+                    }`}
+                  >
+                    <RotateCcw size={13} />
+                    <span>Reset to Initial</span>
+                  </button>
+                ) : (
+                  <div />
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowAvatarModal(false)}
+                  className={`px-5 py-2 rounded-xl font-bold text-xs transition-colors cursor-pointer shadow-md ${
+                    isDark
+                      ? 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-emerald-500/20'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-600/20'
+                  }`}
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Account Statistics Quick Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="glass-card p-4 sm:p-5 border border-white/[0.06]">
-          <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-            <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-400/20">
+      <motion.div 
+        variants={containerVariants}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+      >
+        <motion.div 
+          variants={itemVariants}
+          whileHover={{ y: -3, scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+          className="glass-card p-4 sm:p-5 border border-white/[0.06] hover:border-emerald-400/30 transition-all cursor-default relative overflow-hidden group"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-bl-full pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
+          <div className="flex items-center gap-2 mb-1.5 sm:mb-2 relative z-10">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-400/20 group-hover:scale-110 transition-transform">
               <CurrencyIcon currency={savedActiveCurrency} size={15} />
             </div>
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Logged</span>
           </div>
-          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">
+          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white relative z-10">
             {formatCurrency(profileData?.totalSpent || 0, savedActiveCurrency)}
           </p>
-        </div>
+        </motion.div>
 
-        <div className="glass-card p-4 sm:p-5 border border-white/[0.06]">
-          <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-            <div className="p-1.5 sm:p-2 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-400/20">
+        <motion.div 
+          variants={itemVariants}
+          whileHover={{ y: -3, scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+          className="glass-card p-4 sm:p-5 border border-white/[0.06] hover:border-cyan-400/30 transition-all cursor-default relative overflow-hidden group"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-cyan-500/10 to-transparent rounded-bl-full pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
+          <div className="flex items-center gap-2 mb-1.5 sm:mb-2 relative z-10">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-400/20 group-hover:scale-110 transition-transform">
               <Receipt size={15} />
             </div>
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Expenses</span>
           </div>
-          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">
+          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white relative z-10">
             {profileData?._count?.expenses || 0}
           </p>
-        </div>
+        </motion.div>
 
-        <div className="glass-card p-4 sm:p-5 border border-white/[0.06]">
-          <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-            <div className="p-1.5 sm:p-2 rounded-xl bg-teal-500/15 text-teal-300 border border-teal-400/20">
+        <motion.div 
+          variants={itemVariants}
+          whileHover={{ y: -3, scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+          className="glass-card p-4 sm:p-5 border border-white/[0.06] hover:border-teal-400/30 transition-all cursor-default relative overflow-hidden group"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-teal-500/10 to-transparent rounded-bl-full pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
+          <div className="flex items-center gap-2 mb-1.5 sm:mb-2 relative z-10">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-teal-500/15 text-teal-300 border border-teal-400/20 group-hover:scale-110 transition-transform">
               <Users size={15} />
             </div>
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Splits Created</span>
           </div>
-          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">
+          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white relative z-10">
             {profileData?._count?.sharedExpenses || 0}
           </p>
-        </div>
+        </motion.div>
 
-        <div className="glass-card p-4 sm:p-5 border border-white/[0.06]">
-          <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-            <div className="p-1.5 sm:p-2 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-400/20">
+        <motion.div 
+          variants={itemVariants}
+          whileHover={{ y: -3, scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+          className="glass-card p-4 sm:p-5 border border-white/[0.06] hover:border-amber-400/30 transition-all cursor-default relative overflow-hidden group"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-bl-full pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
+          <div className="flex items-center gap-2 mb-1.5 sm:mb-2 relative z-10">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-400/20 group-hover:scale-110 transition-transform">
               <Award size={15} />
             </div>
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Participations</span>
           </div>
-          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white">
+          <p className="text-lg sm:text-xl lg:text-2xl font-black text-white relative z-10">
             {profileData?._count?.participations || 0}
           </p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Profile & Security Forms */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-7">
+      <motion.div 
+        variants={itemVariants}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-7"
+      >
         {/* Edit Personal Information Card */}
-        <div className="glass-card p-4 sm:p-6 lg:p-7 flex flex-col justify-between">
+        <motion.div 
+          whileHover={{ y: -2 }}
+          transition={{ duration: 0.2 }}
+          className="glass-card p-4 sm:p-6 lg:p-7 flex flex-col justify-between hover:border-emerald-400/30 transition-all duration-300"
+        >
           <div>
             <div className="flex items-center gap-2.5 mb-2">
               <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-400/20">
@@ -543,7 +945,7 @@ const Profile = () => {
 
             <form onSubmit={handleUpdateInfo} className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Full Name
                 </label>
                 <input
@@ -551,18 +953,18 @@ const Profile = () => {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  className="w-full rounded-2xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all"
                   placeholder="Your Full Name"
                 />
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Email Address
                   </label>
                   {isEmailModified && (
-                    <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider">
+                    <span className="text-[10px] text-amber-600 dark:text-amber-300 font-bold uppercase tracking-wider">
                       Requires Email OTP
                     </span>
                   )}
@@ -572,16 +974,16 @@ const Profile = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  className="w-full rounded-2xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all"
                   placeholder="you@example.com"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                   <span>Preferred Currency</span>
                   {isCurrencyModified && (
-                    <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">
                       Currency change detected
                     </span>
                   )}
@@ -589,23 +991,23 @@ const Profile = () => {
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 appearance-none cursor-pointer"
+                  className="w-full rounded-2xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs appearance-none cursor-pointer"
                 >
                   {SUPPORTED_CURRENCIES.map(c => (
-                    <option key={c.code} value={c.label} className="bg-[#031512]">
+                    <option key={c.code} value={c.label} className="bg-white dark:bg-[#031512] text-slate-900 dark:text-white">
                       {c.label}
                     </option>
                   ))}
                 </select>
 
                 <div className="flex flex-wrap items-center justify-between gap-2 mt-2 pt-1">
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    Current workspace: <strong className="text-emerald-300 font-bold">{savedActiveCurrency}</strong>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                    Current workspace: <strong className="text-emerald-700 dark:text-emerald-300 font-bold">{savedActiveCurrency}</strong>
                   </span>
                   <button
                     type="button"
                     onClick={() => handleOpenConversionModal(savedActiveCurrency, currency)}
-                    className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1 cursor-pointer bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-400/20"
+                    className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 hover:underline flex items-center gap-1 cursor-pointer bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-400/20"
                   >
                     <RefreshCw size={11} />
                     <span>Recalculate past expenses</span>
@@ -637,18 +1039,22 @@ const Profile = () => {
               </div>
             </form>
           </div>
-        </div>
+        </motion.div>
 
         {/* Security & Password Card */}
-        <div className="glass-card p-6 lg:p-7 flex flex-col justify-between">
+        <motion.div 
+          whileHover={{ y: -2 }}
+          transition={{ duration: 0.2 }}
+          className="glass-card p-6 lg:p-7 flex flex-col justify-between hover:border-teal-400/30 transition-all duration-300"
+        >
           <div>
             <div className="flex items-center gap-2.5 mb-2">
               <div className="p-2 rounded-xl bg-teal-500/15 text-teal-300 border border-teal-400/20">
                 <KeyRound size={18} />
               </div>
-              <h2 className="text-lg font-bold text-white tracking-wide">Security & Password</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">Security & Password</h2>
             </div>
-            <p className="text-xs text-emerald-300/70 font-medium mb-6">
+            <p className="text-xs text-emerald-800 dark:text-emerald-300/70 font-medium mb-6">
               Password changes require 6-digit email authentication sent to your registered inbox.
             </p>
 
@@ -680,7 +1086,7 @@ const Profile = () => {
 
             <form onSubmit={handleInitiatePasswordChange} className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Current Password
                 </label>
                 <div className="relative">
@@ -689,13 +1095,13 @@ const Profile = () => {
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full glass-inset pl-4 pr-11 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    className="w-full rounded-2xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 pl-4 pr-11 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-300 transition-colors p-1"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors p-1"
                     title={showCurrentPassword ? 'Hide password' : 'View password'}
                     tabIndex={-1}
                   >
@@ -705,7 +1111,7 @@ const Profile = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   New Password
                 </label>
                 <div className="relative">
@@ -718,13 +1124,13 @@ const Profile = () => {
                       if (!showNewPasswordRules) setShowNewPasswordRules(true);
                     }}
                     onFocus={() => setShowNewPasswordRules(true)}
-                    className="w-full glass-inset pl-4 pr-11 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    className="w-full rounded-2xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 pl-4 pr-11 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all"
                     placeholder="••••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-300 transition-colors p-1"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors p-1"
                     title={showNewPassword ? 'Hide password' : 'View password'}
                     tabIndex={-1}
                   >
@@ -740,7 +1146,7 @@ const Profile = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Confirm New Password
                 </label>
                 <div className="relative">
@@ -750,13 +1156,13 @@ const Profile = () => {
                     minLength={6}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full glass-inset pl-4 pr-11 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    className="w-full rounded-2xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 pl-4 pr-11 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all"
                     placeholder="Repeat new password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-300 transition-colors p-1"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors p-1"
                     title={showConfirmPassword ? 'Hide password' : 'View password'}
                     tabIndex={-1}
                   >
@@ -783,34 +1189,43 @@ const Profile = () => {
               </div>
             </form>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Category Spending Limits & High Spending Alerts Manager */}
-      <CategoryLimitsSettings />
+      <motion.div variants={itemVariants} whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
+        <CategoryLimitsSettings />
+      </motion.div>
 
       {/* Push Notification & Preferences Section */}
-      <NotificationSettings />
+      <motion.div variants={itemVariants} whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
+        <NotificationSettings />
+      </motion.div>
 
       {/* Danger Zone: Delete Account */}
-      <div className={`glass-card p-5 sm:p-6 lg:p-7 border rounded-3xl w-full ${
-        profileData?.hasUnsettledDebts
-          ? 'border-amber-500/30 bg-amber-950/10'
-          : 'border-rose-500/20 bg-rose-950/10'
-      }`}>
+      <motion.div 
+        variants={itemVariants}
+        whileHover={{ y: -2 }}
+        transition={{ duration: 0.2 }}
+        className={`glass-card p-5 sm:p-6 lg:p-7 border rounded-3xl w-full ${
+          profileData?.hasUnsettledDebts
+            ? 'border-amber-500/30 bg-amber-950/10'
+            : 'border-rose-500/20 bg-rose-950/10'
+        }`}
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2.5">
               <div className={`p-2 rounded-xl border ${
                 profileData?.hasUnsettledDebts
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-400/30'
-                  : 'bg-rose-500/20 text-rose-400 border-rose-400/30'
+                  ? 'bg-amber-500/15 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30 dark:border-amber-400/30'
+                  : 'bg-rose-500/20 text-rose-700 dark:text-rose-400 border-rose-400/30'
               }`}>
                 {profileData?.hasUnsettledDebts ? <AlertTriangle size={18} /> : <Trash2 size={18} />}
               </div>
-              <h2 className="text-lg font-bold text-white tracking-wide">Delete Account</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">Delete Account</h2>
               {profileData?.hasUnsettledDebts && (
-                <span className="text-[10px] uppercase font-bold text-amber-300 bg-amber-500/15 border border-amber-400/30 px-2 py-0.5 rounded-lg">
+                <span className="text-[10px] uppercase font-black text-amber-900 dark:text-amber-300 bg-amber-500/20 dark:bg-amber-500/15 border border-amber-600/30 dark:border-amber-400/30 px-2.5 py-0.5 rounded-lg">
                   Action Locked: Unsettled Debts
                 </span>
               )}
@@ -818,7 +1233,7 @@ const Profile = () => {
             <p className="text-xs text-[var(--text-muted)] font-medium max-w-2xl">
               {profileData?.hasUnsettledDebts ? (
                 <span>
-                  You have <strong className="text-amber-300 font-bold">{profileData.unsettledCount} unsettled debt(s)</strong> in Split Expenses. For account integrity, all peer balances must be settled in the Splits tab before your account can be deleted.
+                  You have <strong className="text-amber-900 dark:text-amber-300 font-bold">{profileData.unsettledCount} unsettled debt(s)</strong> in Split Expenses. For account integrity, all peer balances must be settled in the Splits tab before your account can be deleted.
                 </span>
               ) : (
                 <span>
@@ -832,7 +1247,7 @@ const Profile = () => {
             <button
               type="button"
               onClick={() => navigate('/splits')}
-              className="px-5 py-3 rounded-2xl font-bold text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 hover:border-amber-400 transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg shadow-amber-950/40 cursor-pointer"
+              className="px-5 py-3 rounded-2xl font-bold text-xs bg-amber-500/25 hover:bg-amber-500/35 text-amber-950 dark:text-amber-200 border border-amber-600/40 dark:border-amber-500/40 transition-all flex items-center justify-center gap-2 shrink-0 shadow-sm dark:shadow-lg dark:shadow-amber-950/40 cursor-pointer"
             >
               <Users size={15} />
               <span>Settle Debts in Splits</span>
@@ -846,14 +1261,14 @@ const Profile = () => {
                 setDeleteError('');
                 setShowDeleteModal(true);
               }}
-              className="px-5 py-3 rounded-2xl font-bold text-xs bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 hover:border-rose-400 transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg shadow-rose-950/40 hover:scale-[1.02] cursor-pointer"
+              className="px-5 py-3 rounded-2xl font-bold text-xs bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/40 hover:border-rose-400 transition-all flex items-center justify-center gap-2 shrink-0 shadow-sm dark:shadow-lg dark:shadow-rose-950/40 hover:scale-[1.02] cursor-pointer"
             >
               <Trash2 size={15} />
               <span>Delete Account</span>
             </button>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {showEmailOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay">
@@ -906,7 +1321,7 @@ const Profile = () => {
                   maxLength={6}
                   value={emailOtpCode}
                   onChange={(e) => setEmailOtpCode(e.target.value.replace(/\D/g, ''))}
-                  className="w-full glass-inset px-4 py-3 text-center text-2xl font-black tracking-[0.4em] text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="w-full rounded-2xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 px-4 py-3 text-center text-2xl font-black tracking-[0.4em] text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                   placeholder="••••••"
                   autoFocus
                 />
@@ -916,7 +1331,7 @@ const Profile = () => {
                 <button
                   type="button"
                   onClick={() => setShowEmailOtpModal(false)}
-                  className="flex-1 py-3 rounded-xl text-xs font-bold text-slate-300 hover:text-white glass-btn"
+                  className="flex-1 py-3 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white glass-btn"
                 >
                   Cancel
                 </button>
@@ -950,7 +1365,7 @@ const Profile = () => {
                 <div className="p-2 rounded-xl bg-teal-500/20 text-teal-300 border border-teal-400/30">
                   <ShieldCheck size={18} />
                 </div>
-                <h3 className="text-lg font-bold text-white">Email Authentication</h3>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Email Authentication</h3>
               </div>
               <button 
                 onClick={() => setShowPasswordOtpModal(false)}
@@ -960,25 +1375,25 @@ const Profile = () => {
               </button>
             </div>
 
-            <div className="text-xs text-slate-300 mb-4 space-y-2">
+            <div className="text-xs text-slate-600 dark:text-slate-300 mb-4 space-y-2">
               <p>
                 To protect your account, enter the 6-digit authentication code sent to your registered email: <br />
-                <strong className="text-emerald-300">{profileData?.email}</strong>
+                <strong className="text-emerald-700 dark:text-emerald-300 font-bold">{profileData?.email}</strong>
               </p>
-              <p className="text-[11px] text-emerald-300/90 font-medium bg-emerald-500/10 py-1.5 px-2.5 rounded-lg border border-emerald-500/20 text-center">
+              <p className="text-[11px] text-emerald-800 dark:text-emerald-300/90 font-medium bg-emerald-500/10 py-1.5 px-2.5 rounded-lg border border-emerald-500/20 text-center">
                 💡 Please check your <strong>Spam / Junk</strong> folder if the mail isn't in your inbox.
               </p>
             </div>
 
             {passwordOtpError && (
-              <div className="bg-rose-950/40 border border-rose-500/30 text-rose-200 rounded-xl p-3 mb-4 text-xs font-semibold">
+              <div className="bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/30 text-rose-800 dark:text-rose-200 rounded-xl p-3 mb-4 text-xs font-semibold">
                 {passwordOtpError}
               </div>
             )}
 
             <form onSubmit={handleConfirmPasswordOtp} className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-2 text-center">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 text-center">
                   Enter 6-Digit Code
                 </label>
                 <input
@@ -987,7 +1402,7 @@ const Profile = () => {
                   maxLength={6}
                   value={passwordOtpCode}
                   onChange={(e) => setPasswordOtpCode(e.target.value.replace(/\D/g, ''))}
-                  className="w-full glass-inset px-4 py-3 text-center text-2xl font-black tracking-[0.4em] text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="w-full rounded-2xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 px-4 py-3 text-center text-2xl font-black tracking-[0.4em] text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                   placeholder="••••••"
                   autoFocus
                 />
@@ -1099,22 +1514,22 @@ const Profile = () => {
                       required
                       value={deletePassword}
                       onChange={(e) => setDeletePassword(e.target.value)}
-                      className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-rose-400"
+                      className="w-full rounded-2xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-400/40 focus:border-rose-400 shadow-2xs transition-all"
                       placeholder="Enter your current password"
                       autoFocus
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                      Type <span className="text-rose-400 font-mono font-black">DELETE</span> to confirm
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Type <span className="text-rose-500 dark:text-rose-400 font-mono font-black">DELETE</span> to confirm
                     </label>
                     <input
                       type="text"
                       required
                       value={deleteConfirmText}
                       onChange={(e) => setDeleteConfirmText(e.target.value)}
-                      className="w-full glass-inset px-4 py-3 text-sm font-mono tracking-widest text-white focus:outline-none focus:ring-1 focus:ring-rose-400 uppercase"
+                      className="w-full rounded-2xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 px-4 py-3 text-sm font-mono tracking-widest text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-400/40 focus:border-rose-400 shadow-2xs transition-all uppercase"
                       placeholder="DELETE"
                     />
                   </div>
@@ -1123,7 +1538,7 @@ const Profile = () => {
                     <button
                       type="button"
                       onClick={() => setShowDeleteModal(false)}
-                      className="flex-1 py-3 rounded-xl text-xs font-bold text-slate-300 hover:text-white glass-btn"
+                      className="flex-1 py-3 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white glass-btn"
                     >
                       Cancel
                     </button>
@@ -1158,16 +1573,16 @@ const Profile = () => {
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             className="glass-card w-full max-w-lg overflow-hidden border border-emerald-400/30 p-5 sm:p-7 shadow-2xl relative my-auto"
           >
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/[0.08]">
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-black/5 dark:border-white/[0.08]">
               <div className="flex items-center gap-2.5">
                 <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]">
                   <CurrencyIcon currency={modalToCurrency} size={20} />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-black text-white tracking-wide">
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-wide">
                     Convert Existing Expenses?
                   </h3>
-                  <p className="text-xs text-emerald-300/80 font-medium">
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300/80 font-medium">
                     Live Market Exchange Rate Conversion
                   </p>
                 </div>
@@ -1182,10 +1597,10 @@ const Profile = () => {
             </div>
 
             {/* Currency From / To Selectors */}
-            <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/20 mb-4 space-y-3.5">
+            <div className="p-4 rounded-2xl bg-emerald-500/[0.06] dark:bg-emerald-950/30 border border-emerald-500/20 mb-4 space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                  <label className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-400 block mb-1">
                     Convert From (Current values)
                   </label>
                   <select
@@ -1195,16 +1610,16 @@ const Profile = () => {
                       setModalFromCurrency(newFrom);
                       updateModalRate(newFrom, modalToCurrency);
                     }}
-                    className="w-full glass-inset px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 appearance-none cursor-pointer"
+                    className="w-full rounded-xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 appearance-none cursor-pointer"
                   >
                     {SUPPORTED_CURRENCIES.map(c => (
-                      <option key={c.code} value={c.label} className="bg-[#031512]">{c.label}</option>
+                      <option key={c.code} value={c.label} className="bg-white dark:bg-[#031512] text-slate-900 dark:text-white">{c.label}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-emerald-300 block mb-1">
+                  <label className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 block mb-1">
                     Convert To (New currency)
                   </label>
                   <select
@@ -1214,10 +1629,10 @@ const Profile = () => {
                       setModalToCurrency(newTo);
                       updateModalRate(modalFromCurrency, newTo);
                     }}
-                    className="w-full glass-inset px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 appearance-none cursor-pointer"
+                    className="w-full rounded-xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 appearance-none cursor-pointer"
                   >
                     {SUPPORTED_CURRENCIES.map(c => (
-                      <option key={c.code} value={c.label} className="bg-[#031512]">{c.label}</option>
+                      <option key={c.code} value={c.label} className="bg-white dark:bg-[#031512] text-slate-900 dark:text-white">{c.label}</option>
                     ))}
                   </select>
                 </div>
@@ -1299,7 +1714,7 @@ const Profile = () => {
           </motion.div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

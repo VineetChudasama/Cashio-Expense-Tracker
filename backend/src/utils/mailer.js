@@ -292,3 +292,98 @@ export async function sendOtpEmail(toEmail, code, type = 'REGISTER') {
   console.warn(`[MAILER WARNING] No successful delivery method for ${toEmail}.`);
   return { success: false, error: 'All email delivery channels failed' };
 }
+
+/**
+ * Send a Security Alert email upon 3 consecutive failed login attempts
+ */
+export async function sendFailedLoginSecurityAlert(toEmail, { ip = 'Unknown', timestamp = new Date().toISOString() } = {}) {
+  const subject = 'Cashio Security Alert: 3 Failed Login Attempts Detected';
+  const config = getMailConfig();
+
+  const formattedTime = new Date().toUTCString();
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #030F0D; color: #F8FAFC; margin: 0; padding: 20px; }
+        .container { max-width: 520px; margin: 0 auto; background: #06231E; border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 20px; padding: 36px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .logo { text-align: center; margin-bottom: 24px; }
+        .logo span { font-size: 28px; font-weight: 900; color: #10B981; letter-spacing: 2px; }
+        .badge { display: inline-block; background: rgba(244, 63, 94, 0.2); border: 1px solid rgba(244, 63, 94, 0.4); color: #FDA4AF; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; margin-bottom: 12px; }
+        h2 { color: #FFFFFF; font-size: 22px; margin-top: 0; margin-bottom: 10px; text-align: center; }
+        p { color: #94D3C7; font-size: 14px; line-height: 1.6; text-align: center; }
+        .alert-box { background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 14px; padding: 18px; margin: 24px 0; text-align: left; }
+        .alert-box div { font-size: 13px; color: #FEE2E2; margin-bottom: 6px; }
+        .alert-box div strong { color: #FFFFFF; }
+        .footer { margin-top: 32px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 20px; text-align: center; font-size: 12px; color: #64748B; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="logo">
+          <span>CASHIO</span>
+        </div>
+        <div style="text-align: center;">
+          <span class="badge">Security Lockout Alert</span>
+          <h2>Suspicious Login Activity</h2>
+          <p>We detected <strong>3 consecutive failed password attempts</strong> on your Cashio account.</p>
+        </div>
+        <div class="alert-box">
+          <div><strong>Status:</strong> Temporarily locked out for 10 minutes</div>
+          <div><strong>Time:</strong> ${formattedTime}</div>
+          <div><strong>IP Address:</strong> <span style="font-family: monospace; font-size: 13px; color: #FFFFFF; font-weight: bold;">${ip || '127.0.0.1 (Localhost / Device)'}</span></div>
+        </div>
+        <p style="font-size: 13px; color: #FDA4AF;">For your security, login access for this account has been locked for the next <strong>10 minutes</strong>.</p>
+        <p style="font-size: 12px; color: #94A3B8;">If this was you, you can try again after 10 minutes or reset your password. If you did NOT attempt this login, someone may be trying to access your account. Please change your password immediately once the timeout expires.</p>
+        <div class="footer">
+          &copy; ${new Date().getFullYear()} Cashio Smart Expense Tracker. All rights reserved.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `Security Alert: 3 failed password attempts were detected on your Cashio account at ${formattedTime} from IP ${ip}. Your account has been temporarily locked for 10 minutes for your protection.`;
+
+  if (config.brevoKey) {
+    const brevoResult = await sendViaBrevo(toEmail, subject, html, text);
+    if (brevoResult && brevoResult.success) return brevoResult;
+  }
+
+  if (config.user && config.pass) {
+    try {
+      const cleanUser = config.user.trim();
+      const cleanPass = config.pass.replace(/\s+/g, '');
+      const gmailTransporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: { user: cleanUser, pass: cleanPass },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        tls: { rejectUnauthorized: false }
+      });
+      await withTimeout(gmailTransporter.sendMail({
+        from: `"Cashio Security" <${cleanUser}>`,
+        to: toEmail,
+        subject,
+        text,
+        html
+      }), 12000);
+      return { success: true };
+    } catch (err) {
+      console.error(`[MAILER SECURITY ALERT ERROR]:`, err.message);
+    }
+  }
+
+  if (config.resendKey) {
+    const resendResult = await sendViaResend(toEmail, subject, html, text);
+    if (resendResult && resendResult.success) return resendResult;
+  }
+
+  return { success: false, error: 'All notification channels failed' };
+}

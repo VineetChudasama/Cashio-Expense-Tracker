@@ -40,6 +40,9 @@ router.post('/', async (req, res) => {
       if (!expenseAmount || isNaN(expenseAmount) || expenseAmount <= 0) {
         return res.status(400).json({ success: false, error: 'A valid positive expense amount is required' });
       }
+      if (expenseAmount > 100000) {
+        return res.status(400).json({ success: false, error: 'Maximum limit of 100,000 exceeded per expense created' });
+      }
 
       expense = await prisma.expense.create({
         data: {

@@ -35,17 +35,30 @@ import PasswordRequirements, { checkPasswordCriteria } from '../components/Passw
 import ThemeToggle from '../components/ThemeToggle';
 import { SUPPORTED_CURRENCIES, getCurrencySymbol } from '../utils/currency';
 
+export const CATEGORY_MAX_LIMITS = {
+  Rent: 100000,
+  Education: 80000,
+  Travel: 60000,
+  Food: 50000,
+  Shopping: 40000,
+  Health: 35000,
+  Utilities: 30000,
+  Entertainment: 25000,
+  Transport: 25000,
+  Other: 20000
+};
+
 const CATEGORY_CONFIG = [
-  { name: 'Food', icon: Utensils, defaultLimit: 500, placeholder: 'e.g. 500' },
-  { name: 'Shopping', icon: ShoppingBag, defaultLimit: 300, placeholder: 'e.g. 300' },
-  { name: 'Travel', icon: Plane, defaultLimit: 250, placeholder: 'e.g. 250' },
-  { name: 'Entertainment', icon: Film, defaultLimit: 150, placeholder: 'e.g. 150' },
-  { name: 'Transport', icon: Car, defaultLimit: 150, placeholder: 'e.g. 150' },
-  { name: 'Rent', icon: Home, defaultLimit: 1200, placeholder: 'e.g. 1200' },
-  { name: 'Utilities', icon: Zap, defaultLimit: 200, placeholder: 'e.g. 200' },
-  { name: 'Health', icon: HeartPulse, defaultLimit: 150, placeholder: 'e.g. 150' },
-  { name: 'Education', icon: GraduationCap, defaultLimit: 200, placeholder: 'e.g. 200' },
-  { name: 'Other', icon: Layers, defaultLimit: 100, placeholder: 'e.g. 100' }
+  { name: 'Rent', icon: Home, maxLimit: 100000, defaultLimit: 25000, placeholder: 'Max: 100,000' },
+  { name: 'Education', icon: GraduationCap, maxLimit: 80000, defaultLimit: 15000, placeholder: 'Max: 80,000' },
+  { name: 'Travel', icon: Plane, maxLimit: 60000, defaultLimit: 12000, placeholder: 'Max: 60,000' },
+  { name: 'Food', icon: Utensils, maxLimit: 50000, defaultLimit: 15000, placeholder: 'Max: 50,000' },
+  { name: 'Shopping', icon: ShoppingBag, maxLimit: 40000, defaultLimit: 10000, placeholder: 'Max: 40,000' },
+  { name: 'Health', icon: HeartPulse, maxLimit: 35000, defaultLimit: 8000, placeholder: 'Max: 35,000' },
+  { name: 'Utilities', icon: Zap, maxLimit: 30000, defaultLimit: 6000, placeholder: 'Max: 30,000' },
+  { name: 'Entertainment', icon: Film, maxLimit: 25000, defaultLimit: 5000, placeholder: 'Max: 25,000' },
+  { name: 'Transport', icon: Car, maxLimit: 25000, defaultLimit: 5000, placeholder: 'Max: 25,000' },
+  { name: 'Other', icon: Layers, maxLimit: 20000, defaultLimit: 4000, placeholder: 'Max: 20,000' }
 ];
 
 const Register = () => {
@@ -63,15 +76,15 @@ const Register = () => {
 
   // Category Limits Form State
   const [categoryLimits, setCategoryLimits] = useState({
+    Rent: '',
+    Education: '',
+    Travel: '',
     Food: '',
     Shopping: '',
-    Travel: '',
+    Health: '',
+    Utilities: '',
     Entertainment: '',
     Transport: '',
-    Rent: '',
-    Utilities: '',
-    Health: '',
-    Education: '',
     Other: ''
   });
 
@@ -83,10 +96,56 @@ const Register = () => {
   const [resendTimer, setResendTimer] = useState(60);
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
+  const [otpLockoutTimer, setOtpLockoutTimer] = useState(0);
 
   const navigate = useNavigate();
   const { register, verifyRegisterOtp } = useAuth();
   const currencySymbol = getCurrencySymbol(currency);
+  const isINR = currency.includes('INR') || currency.includes('₹');
+
+  // Check saved OTP lockout timestamp
+  useEffect(() => {
+    const targetEmail = email.trim().toLowerCase();
+    if (!targetEmail) return;
+    const saved = localStorage.getItem('cashio_otp_lockout_' + targetEmail);
+    if (saved) {
+      const until = parseInt(saved, 10);
+      const remaining = Math.ceil((until - Date.now()) / 1000);
+      if (remaining > 0) {
+        setOtpLockoutTimer(remaining);
+      } else {
+        localStorage.removeItem('cashio_otp_lockout_' + targetEmail);
+        setOtpLockoutTimer(0);
+      }
+    }
+  }, [step, email]);
+
+  // Tick down otpLockoutTimer
+  useEffect(() => {
+    let interval;
+    if (otpLockoutTimer > 0) {
+      interval = setInterval(() => {
+        setOtpLockoutTimer(prev => {
+          if (prev <= 1) {
+            const targetEmail = email.trim().toLowerCase();
+            if (targetEmail) localStorage.removeItem('cashio_otp_lockout_' + targetEmail);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpLockoutTimer, email]);
+
+  const triggerOtpLockout = (targetEmail, seconds = 600) => {
+    const normalized = (targetEmail || '').trim().toLowerCase();
+    const duration = seconds > 0 ? seconds : 600;
+    setOtpLockoutTimer(duration);
+    if (normalized) {
+      localStorage.setItem('cashio_otp_lockout_' + normalized, (Date.now() + duration * 1000).toString());
+    }
+  };
 
   useEffect(() => {
     let interval;
@@ -99,8 +158,16 @@ const Register = () => {
   }, [step, resendTimer]);
 
   const handleLimitChange = (category, val) => {
-    // Only allow numbers and decimal
-    const cleanVal = val.replace(/[^0-9.]/g, '');
+    // Only allow whole numbers, max 6 digits
+    let cleanVal = val.replace(/[^0-9]/g, '');
+    if (cleanVal.length > 6) {
+      cleanVal = cleanVal.slice(0, 6);
+    }
+    const catMax = CATEGORY_MAX_LIMITS[category] || 100000;
+    const numVal = parseInt(cleanVal, 10);
+    if (!isNaN(numVal) && numVal > catMax) {
+      cleanVal = catMax.toString();
+    }
     setCategoryLimits(prev => ({
       ...prev,
       [category]: cleanVal
@@ -108,12 +175,9 @@ const Register = () => {
   };
 
   const applySuggestedPresets = () => {
-    const isINR = currency.includes('INR') || currency.includes('₹');
-    const multiplier = isINR ? 10 : 1;
-    
     const preset = {};
     CATEGORY_CONFIG.forEach(cat => {
-      preset[cat.name] = (cat.defaultLimit * multiplier).toString();
+      preset[cat.name] = cat.defaultLimit.toString();
     });
     setCategoryLimits(preset);
   };
@@ -180,6 +244,19 @@ const Register = () => {
     setIsSubmitting(true);
     
     try {
+      // Validate each category limit against its category maximum
+      for (const [cat, val] of Object.entries(categoryLimits)) {
+        if (val && val.trim()) {
+          const num = parseFloat(val);
+          const catMax = CATEGORY_MAX_LIMITS[cat] || 100000;
+          if (!isNaN(num) && num > catMax) {
+            setError(`Category limit for "${cat}" cannot exceed ${currencySymbol}${catMax.toLocaleString()}.`);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+
       // Format category limits for backend
       const formattedLimits = {};
       Object.entries(categoryLimits).forEach(([cat, val]) => {
@@ -238,7 +315,12 @@ const Register = () => {
         setError(res.error || 'Invalid verification code');
       }
     } catch (err) {
-      const serverErr = err.response?.data?.error;
+      const respData = err.response?.data;
+      if (err.response?.status === 429 || respData?.locked) {
+        const sec = respData?.remainingSeconds || (respData?.remainingMinutes ? respData.remainingMinutes * 60 : 600);
+        triggerOtpLockout(email, sec);
+      }
+      const serverErr = respData?.error;
       let msg = 'Failed to verify code';
       if (Array.isArray(serverErr)) {
         msg = serverErr.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
@@ -256,7 +338,7 @@ const Register = () => {
   };
 
   const handleResendOtp = async () => {
-    if (resendTimer > 0 || resending) return;
+    if (resendTimer > 0 || resending || otpLockoutTimer > 0) return;
     setResending(true);
     setError('');
     setResendMessage('');
@@ -271,6 +353,11 @@ const Register = () => {
         setError(res.error || 'Failed to resend verification code');
       }
     } catch (err) {
+      const respData = err.response?.data;
+      if (err.response?.status === 429 || respData?.locked) {
+        const sec = respData?.remainingSeconds || (respData?.remainingMinutes ? respData.remainingMinutes * 60 : 600);
+        triggerOtpLockout(email, sec);
+      }
       setError(err.response?.data?.error || 'Failed to resend verification code');
     } finally {
       setResending(false);
@@ -334,14 +421,14 @@ const Register = () => {
 
         {/* 2 Tabs Header during Step 1 */}
         {step === 1 && (
-          <div className="flex p-1.5 rounded-2xl bg-black/20 border border-white/10 mb-6 relative">
+          <div className="flex p-1.5 rounded-2xl bg-emerald-500/[0.08] dark:bg-black/20 border border-emerald-600/20 dark:border-white/10 mb-6 relative">
             <button
               type="button"
               onClick={() => setActiveTab('personal')}
               className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
                 activeTab === 'personal'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-emerald-800 dark:hover:text-white'
               }`}
             >
               <User size={14} />
@@ -358,7 +445,7 @@ const Register = () => {
               className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
                 activeTab === 'limits'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-emerald-800 dark:hover:text-white'
               }`}
             >
               <Sliders size={14} />
@@ -378,10 +465,10 @@ const Register = () => {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="bg-rose-950/40 border border-rose-500/30 text-rose-200 rounded-2xl p-3.5 mb-6 text-xs font-semibold flex items-center gap-2.5 shadow-lg shadow-rose-950/30"
+              className="bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/30 text-rose-800 dark:text-rose-200 rounded-2xl p-3.5 mb-6 text-xs font-semibold flex items-center gap-2.5 shadow-sm dark:shadow-lg dark:shadow-rose-950/30"
             >
-              <AlertCircle size={16} className="text-rose-400 shrink-0" />
-              <span>{error}</span>
+              <AlertCircle size={16} className="text-rose-600 dark:text-rose-400 shrink-0" />
+              <span className="leading-relaxed">{error}</span>
             </motion.div>
           )}
 
@@ -390,10 +477,10 @@ const Register = () => {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="bg-emerald-950/40 border border-emerald-500/30 text-emerald-200 rounded-2xl p-3.5 mb-6 text-xs font-semibold flex items-center gap-2.5"
+              className="bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 rounded-2xl p-3.5 mb-6 text-xs font-semibold flex items-center gap-2.5"
             >
-              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-              <span>{resendMessage}</span>
+              <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="leading-relaxed">{resendMessage}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -409,8 +496,8 @@ const Register = () => {
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <User size={13} className="text-emerald-400" />
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <User size={13} className="text-emerald-500 dark:text-emerald-400" />
                     <span>Full Name</span>
                   </label>
                   <input
@@ -418,14 +505,14 @@ const Register = () => {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    className="w-full glass-inset px-4 py-3 text-sm text-[var(--text-primary)] dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
                     placeholder="John Doe"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <Mail size={13} className="text-emerald-400" />
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <Mail size={13} className="text-emerald-500 dark:text-emerald-400" />
                     <span>Email Address</span>
                   </label>
                   <input
@@ -433,14 +520,14 @@ const Register = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    className="w-full glass-inset px-4 py-3 text-sm text-[var(--text-primary)] dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
                     placeholder="you@example.com"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <Lock size={13} className="text-emerald-400" />
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <Lock size={13} className="text-emerald-500 dark:text-emerald-400" />
                     <span>Password</span>
                   </label>
                   <div className="relative">
@@ -453,13 +540,13 @@ const Register = () => {
                         if (!showPasswordRules) setShowPasswordRules(true);
                       }}
                       onFocus={() => setShowPasswordRules(true)}
-                      className="w-full glass-inset pl-4 pr-11 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                      className="w-full glass-inset pl-4 pr-11 py-3 text-sm text-[var(--text-primary)] dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
                       placeholder="••••••••••"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-300 transition-colors p-1"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors p-1"
                       title={showPassword ? 'Hide password' : 'View password'}
                       tabIndex={-1}
                     >
@@ -474,17 +561,17 @@ const Register = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <Coins size={13} className="text-emerald-400" />
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <Coins size={13} className="text-emerald-500 dark:text-emerald-400" />
                     <span>Preferred Currency</span>
                   </label>
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
-                    className="w-full glass-inset px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer"
+                    className="w-full glass-inset px-4 py-3 text-sm text-[var(--text-primary)] dark:text-white bg-white/70 dark:bg-black/40 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer"
                   >
                     {SUPPORTED_CURRENCIES.map(c => (
-                      <option key={c.code} value={c.label} className="bg-[#041915] text-white">
+                      <option key={c.code} value={c.label} className="bg-white text-slate-800 dark:bg-[#041915] dark:text-white">
                         {c.label}
                       </option>
                     ))}
@@ -510,31 +597,31 @@ const Register = () => {
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-5"
               >
-                <div className="p-3.5 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 flex items-start gap-2.5">
-                  <Sparkles size={18} className="text-emerald-400 shrink-0 mt-0.5" />
-                  <div className="text-xs text-slate-300">
-                    <span className="font-bold text-emerald-300 block mb-0.5">High Spending Alerts Protection</span>
-                    Set monthly limits to receive automatic notifications when you reach <strong>50%</strong>, <strong>80%</strong>, or <strong>exceed (100%+)</strong> your category limit. (You can edit these anytime in Profile).
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/20 border border-emerald-500/25 flex items-start gap-2.5">
+                  <Sparkles size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="text-xs text-slate-700 dark:text-slate-300">
+                    <span className="font-bold text-emerald-800 dark:text-emerald-300 block mb-0.5">High Spending Alerts Protection</span>
+                    Set monthly limits (category maximum limits range from {currencySymbol}20,000 to {currencySymbol}100,000) to receive notifications when you reach <strong>50%</strong>, <strong>80%</strong>, or <strong>exceed (100%+)</strong> your category limit. (You can edit these anytime in Profile).
                   </div>
                 </div>
 
                 {/* Presets Bar */}
                 <div className="flex items-center justify-between gap-2 pt-1">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Quick Setup
+                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Quick Setup (Category Max: {currencySymbol}20k - {currencySymbol}100k)
                   </span>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={applySuggestedPresets}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/25 transition-all cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/25 transition-all cursor-pointer"
                     >
                       Fill Suggested
                     </button>
                     <button
                       type="button"
                       onClick={clearAllLimits}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white/5 text-slate-400 hover:text-white border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-200/50 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-300/60 dark:border-white/10 hover:bg-slate-300/60 dark:hover:bg-white/10 transition-all cursor-pointer"
                     >
                       Clear
                     </button>
@@ -550,37 +637,48 @@ const Register = () => {
                     return (
                       <div 
                         key={cat.name} 
-                        className={`p-3 rounded-2xl border transition-all ${
+                        className={`p-3 rounded-2xl border transition-all min-w-0 ${
                           val 
-                            ? 'bg-emerald-950/30 border-emerald-400/40 shadow-sm' 
-                            : 'bg-black/20 border-white/[0.08] hover:border-white/20'
+                            ? 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/50 dark:border-emerald-400/40 shadow-sm' 
+                            : 'bg-white dark:bg-black/20 border-[#CEE8E1] dark:border-white/[0.08] hover:border-emerald-500/30 dark:hover:border-white/20 shadow-sm dark:shadow-none'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
                               <Icon size={14} />
                             </div>
-                            <span className="text-xs font-bold text-white">{cat.name}</span>
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-slate-900 dark:text-white block whitespace-nowrap">
+                                {cat.name}
+                              </span>
+                              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold block leading-tight">
+                                Max {currencySymbol}{cat.maxLimit.toLocaleString()}
+                              </span>
+                            </div>
                           </div>
                           {val && (
-                            <span className="text-[10px] font-extrabold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                              {currencySymbol}{parseFloat(val).toLocaleString()}/mo
+                            <span 
+                              className="text-[10px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-500/15 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0 whitespace-nowrap mt-0.5"
+                              title={`${currencySymbol}${parseInt(val, 10).toLocaleString()}/mo`}
+                            >
+                              {currencySymbol}{parseInt(val, 10).toLocaleString()}/mo
                             </span>
                           )}
                         </div>
 
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-400">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                             {currencySymbol}
                           </span>
                           <input
                             type="text"
-                            inputMode="decimal"
+                            inputMode="numeric"
+                            maxLength={6}
                             value={val}
                             onChange={(e) => handleLimitChange(cat.name, e.target.value)}
-                            placeholder={cat.placeholder}
-                            className="w-full glass-inset pl-7 pr-3 py-2 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                            placeholder={`Max: ${currencySymbol}${cat.maxLimit.toLocaleString()}`}
+                            className="w-full glass-inset pl-7 pr-3 py-2 text-xs font-semibold text-[var(--text-primary)] dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
                           />
                         </div>
                       </div>
@@ -593,7 +691,7 @@ const Register = () => {
                   <button
                     type="button"
                     onClick={() => setActiveTab('personal')}
-                    className="py-3 px-4 rounded-2xl font-bold text-xs text-slate-300 hover:text-white bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                    className="py-3 px-4 rounded-2xl font-bold text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-200/50 dark:bg-white/5 border border-slate-300/60 dark:border-white/10 hover:bg-slate-300/60 dark:hover:bg-white/10 transition-all cursor-pointer"
                   >
                     &larr; Back
                   </button>
@@ -650,11 +748,16 @@ const Register = () => {
 
             <button
               type="submit"
-              disabled={isSubmitting || otpCode.length < 6}
+              disabled={isSubmitting || otpCode.length < 6 || otpLockoutTimer > 0}
               className="w-full glass-btn-primary py-3.5 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2 text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : otpLockoutTimer > 0 ? (
+                <>
+                  <Lock size={18} />
+                  <span>Locked ({Math.floor(otpLockoutTimer / 60)}:{String(otpLockoutTimer % 60).padStart(2, '0')})</span>
+                </>
               ) : (
                 <>
                   <ShieldCheck size={18} />
@@ -667,7 +770,7 @@ const Register = () => {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-slate-400 hover:text-white font-semibold transition-colors cursor-pointer"
+                className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-semibold transition-colors cursor-pointer"
               >
                 &larr; Change Details
               </button>
@@ -675,15 +778,24 @@ const Register = () => {
               <button
                 type="button"
                 onClick={handleResendOtp}
-                disabled={resendTimer > 0 || resending}
+                disabled={resendTimer > 0 || resending || otpLockoutTimer > 0}
                 className={`flex items-center gap-1 font-bold cursor-pointer ${
-                  resendTimer > 0
-                    ? 'text-slate-500 cursor-not-allowed'
-                    : 'text-emerald-400 hover:text-emerald-300 hover:underline'
+                  resendTimer > 0 || otpLockoutTimer > 0
+                    ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                    : 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:underline'
                 }`}
               >
-                <RefreshCw size={13} className={resending ? 'animate-spin' : ''} />
-                <span>{resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Code'}</span>
+                {otpLockoutTimer > 0 ? (
+                  <>
+                    <Lock size={13} />
+                    <span>Locked ({Math.floor(otpLockoutTimer / 60)}:{String(otpLockoutTimer % 60).padStart(2, '0')})</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={13} className={resending ? 'animate-spin' : ''} />
+                    <span>{resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Code'}</span>
+                  </>
+                )}
               </button>
             </div>
           </form>

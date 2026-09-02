@@ -86,7 +86,7 @@ const Layout = () => {
           <NavLink
             to="/profile"
             className={({ isActive }) =>
-              `w-8 h-8 rounded-xl border flex items-center justify-center font-black text-xs shrink-0 transition-all ${
+              `w-8 h-8 rounded-xl border flex items-center justify-center font-black text-xs shrink-0 transition-all overflow-hidden ${
                 isActive
                   ? 'bg-emerald-500/30 border-emerald-400 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
                   : 'bg-emerald-500/10 border-emerald-400/30 text-[var(--text-primary)] hover:bg-emerald-500/20'
@@ -94,7 +94,11 @@ const Layout = () => {
             }
             title="Profile"
           >
-            {user?.name?.charAt(0).toUpperCase() || <User size={14} />}
+            {user?.avatar ? (
+              <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              user?.name?.charAt(0).toUpperCase() || <User size={14} />
+            )}
           </NavLink>
         </div>
       </header>
@@ -189,8 +193,12 @@ const Layout = () => {
             title="View & Edit Profile"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 via-teal-700 to-teal-900 border border-emerald-400/30 flex items-center justify-center font-black text-white shadow-md shrink-0 group-hover:scale-105 transition-transform">
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 via-teal-700 to-teal-900 border border-emerald-400/30 flex items-center justify-center font-black text-white shadow-md shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+                ) : (
+                  user?.name?.charAt(0).toUpperCase() || 'U'
+                )}
               </div>
               <div className="overflow-hidden min-w-0">
                 <p className="text-sm font-bold text-white truncate group-hover:text-emerald-300 transition-colors">
@@ -233,8 +241,12 @@ const Layout = () => {
               className="p-1.5 pl-2 pr-3 rounded-2xl glass-elevated border border-white/10 hover:border-emerald-400/30 flex items-center gap-2.5 transition-all duration-200 group shadow-sm"
               title="Account Profile"
             >
-              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center font-bold text-xs text-white">
-                {user?.name?.charAt(0).toUpperCase() || <User size={13} />}
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center font-bold text-xs text-white overflow-hidden">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+                ) : (
+                  user?.name?.charAt(0).toUpperCase() || <User size={13} />
+                )}
               </div>
               <span className="text-xs font-bold text-[var(--text-primary)] group-hover:text-emerald-400 transition-colors">
                 {user?.name?.split(' ')[0] || 'Profile'}

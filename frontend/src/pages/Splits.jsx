@@ -149,7 +149,7 @@ const Splits = () => {
   ];
 
   return (
-    <div className="space-y-6 sm:space-y-7 max-w-7xl mx-auto pb-12 px-1 sm:px-0">
+    <div className="space-y-6 sm:space-y-7 max-w-7xl mx-auto pb-12 px-3 sm:px-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -179,7 +179,7 @@ const Splits = () => {
       {/* Main Container */}
       <div className="glass-card overflow-hidden">
         {/* Navigation Tabs */}
-        <div className={`flex border-b p-1.5 sm:p-2 gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar ${
+        <div className={`grid grid-cols-3 border-b p-1.5 sm:p-2 gap-1 sm:gap-2 ${
           isDark ? 'bg-[#031512]/60 border-white/[0.06]' : 'bg-[#DFECE5] border-emerald-600/20'
         }`}>
           {tabs.map((tab) => {
@@ -188,7 +188,7 @@ const Splits = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative flex-1 py-2.5 sm:py-3 px-3 sm:px-5 text-xs font-bold text-center rounded-xl whitespace-nowrap transition-colors duration-200 z-10 outline-none min-w-[100px] cursor-pointer ${
+                className={`relative py-2.5 sm:py-3 px-1 sm:px-4 text-[11px] sm:text-xs font-bold text-center rounded-xl whitespace-nowrap transition-colors duration-200 z-10 outline-none flex items-center justify-center cursor-pointer ${
                   isTabActive
                     ? isDark ? 'text-white' : 'text-emerald-950 font-black'
                     : isDark ? 'text-slate-400 hover:text-white' : 'text-emerald-900/80 hover:text-emerald-950 font-semibold'
@@ -205,7 +205,7 @@ const Splits = () => {
                     transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                   />
                 )}
-                <span className="relative z-10 tracking-wide">
+                <span className="relative z-10 tracking-tight sm:tracking-wide">
                   {tab.label}
                 </span>
               </button>
@@ -367,12 +367,16 @@ const Splits = () => {
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border ${
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border overflow-hidden ${
                                 isDark 
                                   ? 'bg-[#031512] text-white border-white/10' 
                                   : 'bg-[#DFECE5] text-emerald-950 border-emerald-600/30'
                               }`}>
-                                {avatarLetter}
+                                {bal.avatar || bal.user?.avatar ? (
+                                  <img src={bal.avatar || bal.user?.avatar} alt={displayName} className="w-full h-full object-cover" />
+                                ) : (
+                                  avatarLetter
+                                )}
                               </div>
                               <div className="min-w-0">
                                 <p className="font-bold text-xs sm:text-sm text-[var(--text-primary)] truncate">{displayName}</p>

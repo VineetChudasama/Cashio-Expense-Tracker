@@ -24,6 +24,7 @@ const NotificationBell = () => {
   const navigate = useNavigate();
   const { isDark } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
   const dropdownRef = useRef(null);
 
   const {
@@ -38,6 +39,25 @@ const NotificationBell = () => {
     deleteNotification,
     clearAllNotifications
   } = useNotifications();
+
+  const handleClearAll = async (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (isClearingAll || notifications.length === 0) return;
+    setIsClearingAll(true);
+
+    setTimeout(async () => {
+      try {
+        await clearAllNotifications();
+      } catch (err) {
+        console.error('[CLEAR NOTIFICATIONS ERROR]:', err);
+      } finally {
+        setIsClearingAll(false);
+      }
+    }, 280);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -242,15 +262,20 @@ const NotificationBell = () => {
                 )}
                 {notifications.length > 0 && (
                   <button
-                    onClick={clearAllNotifications}
+                    onClick={handleClearAll}
+                    disabled={isClearingAll}
                     title="Clear all notifications"
-                    className={`p-1.5 rounded-lg transition-colors text-xs font-semibold cursor-pointer ${
+                    className={`p-1.5 rounded-lg transition-colors text-xs font-semibold cursor-pointer disabled:opacity-50 ${
                       isDark
                         ? 'text-slate-400 hover:text-rose-400 hover:bg-rose-500/10'
                         : 'text-[#6A8F87] hover:text-rose-600 hover:bg-rose-50'
                     }`}
                   >
-                    <Trash2 size={14} />
+                    {isClearingAll ? (
+                      <RotateCw size={14} className="animate-spin text-rose-500" />
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
                   </button>
                 )}
                 {/* Mobile dismiss button */}
@@ -323,102 +348,123 @@ const NotificationBell = () => {
                     <RotateCw size={22} className={`animate-spin mb-2 ${isDark ? 'text-emerald-400' : 'text-[#147D70]'}`} />
                     <p className="text-xs font-medium">Loading notifications...</p>
                   </div>
-                ) : notifications.length === 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex flex-col items-center justify-center py-14 px-4 text-center"
-                  >
-                    <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center mb-3 ${
-                      isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-[#E8F4F1] border-[#CDE9E3] text-[#147D70]'
-                    }`}>
-                      <Bell size={22} />
-                    </div>
-                    <p className={`text-xs font-bold ${isDark ? 'text-slate-200' : 'text-[#07241E]'}`}>All caught up!</p>
-                    <p className={`text-[11px] mt-1 max-w-[240px] ${isDark ? 'text-slate-400' : 'text-[#5A7A73]'}`}>
-                      No notifications in this filter. You will be alerted when new splits or spending alerts occur.
-                    </p>
-                  </motion.div>
                 ) : (
-                  <AnimatePresence initial={false}>
-                    {notifications.map((n) => (
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {notifications.length === 0 ? (
                       <motion.div
-                        key={n.id}
-                        layout
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, x: -16, transition: { duration: 0.15 } }}
-                        transition={{ duration: 0.2 }}
-                        className={`relative group p-3.5 flex gap-3 transition-colors duration-150 cursor-pointer ${
-                          n.isRead
-                            ? isDark
-                              ? 'hover:bg-white/[0.03] opacity-85'
-                              : 'hover:bg-[#F6FAF8] opacity-90'
-                            : isDark
-                              ? 'bg-emerald-500/[0.08] hover:bg-emerald-500/[0.14]'
-                              : 'bg-[#EBF7F4] hover:bg-[#E0F2EE]'
-                        }`}
-                        onClick={() => handleNotificationClick(n)}
+                        key="empty-state"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.28, ease: 'easeOut' }}
+                        className="flex flex-col items-center justify-center py-14 px-4 text-center"
                       >
-                        {/* Unread Accent Dot */}
-                        {!n.isRead && (
-                          <span className={`absolute top-4 left-2 w-1.5 h-1.5 rounded-full ${
-                            isDark ? 'bg-emerald-400 shadow-[0_0_8px_#10B981]' : 'bg-[#147D70] shadow-[0_0_6px_rgba(20,125,112,0.6)]'
-                          }`} />
-                        )}
-
-                        {/* Icon Container */}
-                        <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 ${getTypeBadgeClass(n.type)}`}>
-                          {getTypeIcon(n.type)}
+                        <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center mb-3 ${
+                          isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-[#E8F4F1] border-[#CDE9E3] text-[#147D70]'
+                        }`}>
+                          <Bell size={22} />
                         </div>
+                        <p className={`text-xs font-bold ${isDark ? 'text-slate-200' : 'text-[#07241E]'}`}>All caught up!</p>
+                        <p className={`text-[11px] mt-1 max-w-[240px] ${isDark ? 'text-slate-400' : 'text-[#5A7A73]'}`}>
+                          No notifications in this filter. You will be alerted when new splits or spending alerts occur.
+                        </p>
+                      </motion.div>
+                    ) : (
+                      notifications.map((n, idx) => (
+                        <motion.div
+                          key={n.id}
+                          layout
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ 
+                            opacity: isClearingAll ? 0 : 1, 
+                            x: isClearingAll ? 40 : 0, 
+                            scale: isClearingAll ? 0.95 : 1,
+                            transition: { 
+                              duration: 0.26, 
+                              ease: [0.32, 0.72, 0, 1],
+                              delay: isClearingAll ? Math.min(idx * 0.02, 0.2) : 0 
+                            } 
+                          }}
+                          exit={{ 
+                            opacity: 0, 
+                            x: -24, 
+                            height: 0, 
+                            overflow: 'hidden', 
+                            paddingTop: 0,
+                            paddingBottom: 0,
+                            transition: { duration: 0.25, ease: 'easeInOut' } 
+                          }}
+                          transition={{ duration: 0.2 }}
+                          className={`relative group p-3.5 flex gap-3 transition-colors duration-150 cursor-pointer ${
+                            n.isRead
+                              ? isDark
+                                ? 'hover:bg-white/[0.03] opacity-85'
+                                : 'hover:bg-[#F6FAF8] opacity-90'
+                              : isDark
+                                ? 'bg-emerald-500/[0.08] hover:bg-emerald-500/[0.14]'
+                                : 'bg-[#EBF7F4] hover:bg-[#E0F2EE]'
+                          }`}
+                          onClick={() => handleNotificationClick(n)}
+                        >
+                          {/* Unread Accent Dot */}
+                          {!n.isRead && (
+                            <span className={`absolute top-4 left-2 w-1.5 h-1.5 rounded-full ${
+                              isDark ? 'bg-emerald-400 shadow-[0_0_8px_#10B981]' : 'bg-[#147D70] shadow-[0_0_6px_rgba(20,125,112,0.6)]'
+                            }`} />
+                          )}
 
-                        {/* Content */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className={`text-xs truncate ${
-                              n.isRead
-                                ? isDark ? 'font-semibold text-slate-300' : 'font-semibold text-[#3A5E56]'
-                                : isDark ? 'font-bold text-white' : 'font-extrabold text-[#07241E]'
-                            }`}>
-                              {n.title}
-                            </p>
-                            <span className={`text-[10px] shrink-0 font-medium ${isDark ? 'text-slate-400' : 'text-[#6A8F87]'}`}>
-                              {formatTime(n.createdAt)}
-                            </span>
+                          {/* Icon Container */}
+                          <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 ${getTypeBadgeClass(n.type)}`}>
+                            {getTypeIcon(n.type)}
                           </div>
 
-                          <p className={`text-[11px] leading-relaxed mt-0.5 line-clamp-2 ${
-                            isDark ? 'text-slate-300/90' : 'text-[#2C524A]'
-                          }`}>
-                            {n.message}
-                          </p>
-
-                          {n.link && (
-                            <div className={`mt-1.5 flex items-center gap-1 text-[10px] font-bold ${
-                              isDark ? 'text-emerald-400 group-hover:text-emerald-300' : 'text-[#147D70] group-hover:text-[#0c594f]'
-                            }`}>
-                              <span>View details</span>
-                              <ExternalLink size={11} />
+                          {/* Content */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className={`text-xs truncate ${
+                                n.isRead
+                                  ? isDark ? 'font-semibold text-slate-300' : 'font-semibold text-[#3A5E56]'
+                                  : isDark ? 'font-bold text-white' : 'font-extrabold text-[#07241E]'
+                              }`}>
+                                {n.title}
+                              </p>
+                              <span className={`text-[10px] shrink-0 font-medium ${isDark ? 'text-slate-400' : 'text-[#6A8F87]'}`}>
+                                {formatTime(n.createdAt)}
+                              </span>
                             </div>
-                          )}
-                        </div>
 
-                        {/* Single Delete Action Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNotification(n.id);
-                          }}
-                          title="Delete notification"
-                          className={`opacity-70 sm:opacity-0 group-hover:opacity-100 p-1 rounded transition-all self-start shrink-0 cursor-pointer ${
-                            isDark ? 'text-slate-400 hover:text-rose-400 hover:bg-rose-500/10' : 'text-[#6A8F87] hover:text-rose-600 hover:bg-rose-50'
-                          }`}
-                        >
-                          <X size={13} />
-                        </button>
-                      </motion.div>
-                    ))}
+                            <p className={`text-[11px] leading-relaxed mt-0.5 line-clamp-2 ${
+                              isDark ? 'text-slate-300/90' : 'text-[#2C524A]'
+                            }`}>
+                              {n.message}
+                            </p>
+
+                            {n.link && (
+                              <div className={`mt-1.5 flex items-center gap-1 text-[10px] font-bold ${
+                                isDark ? 'text-emerald-400 group-hover:text-emerald-300' : 'text-[#147D70] group-hover:text-[#0c594f]'
+                              }`}>
+                                <span>View details</span>
+                                <ExternalLink size={11} />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Single Delete Action Button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotification(n.id);
+                            }}
+                            title="Delete notification"
+                            className={`opacity-70 sm:opacity-0 group-hover:opacity-100 p-1 rounded transition-all self-start shrink-0 cursor-pointer ${
+                              isDark ? 'text-slate-400 hover:text-rose-400 hover:bg-rose-500/10' : 'text-[#6A8F87] hover:text-rose-600 hover:bg-rose-50'
+                            }`}
+                          >
+                            <X size={13} />
+                          </button>
+                        </motion.div>
+                      ))
+                    )}
                   </AnimatePresence>
                 )}
               </motion.div>

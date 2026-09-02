@@ -39,6 +39,19 @@ const CATEGORY_MAP = [
   { name: 'Other', icon: Layers, color: 'text-slate-400', bg: 'bg-slate-500/15', border: 'border-slate-500/30' },
 ];
 
+export const CATEGORY_MAX_LIMITS = {
+  Rent: 100000,
+  Education: 80000,
+  Travel: 60000,
+  Food: 50000,
+  Shopping: 40000,
+  Health: 35000,
+  Utilities: 30000,
+  Entertainment: 25000,
+  Transport: 25000,
+  Other: 20000
+};
+
 const CategoryLimitsSettings = () => {
   const { isDark } = useTheme();
   const { user } = useAuth();
@@ -78,7 +91,15 @@ const CategoryLimitsSettings = () => {
   }, [userCurrency]);
 
   const handleInputChange = (category, value) => {
-    const clean = value.replace(/[^0-9.]/g, '');
+    let clean = value.replace(/[^0-9]/g, '');
+    if (clean.length > 6) {
+      clean = clean.slice(0, 6);
+    }
+    const catMax = CATEGORY_MAX_LIMITS[category] || 100000;
+    const numVal = parseInt(clean, 10);
+    if (!isNaN(numVal) && numVal > catMax) {
+      clean = catMax.toString();
+    }
     setEditedLimits(prev => ({
       ...prev,
       [category]: clean
@@ -93,13 +114,27 @@ const CategoryLimitsSettings = () => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
+
+    // Pre-validate that no category limit exceeds its specific maximum limit
+    for (const [cat, val] of Object.entries(editedLimits)) {
+      if (val && val.trim()) {
+        const num = parseFloat(val);
+        const catMax = CATEGORY_MAX_LIMITS[cat] || 100000;
+        if (!isNaN(num) && num > catMax) {
+          setErrorMessage(`Limit for "${cat}" cannot exceed ${currencySymbol}${catMax.toLocaleString()}.`);
+          return;
+        }
+      }
+    }
+
     setSaving(true);
 
     try {
       const payload = {};
       Object.entries(editedLimits).forEach(([cat, val]) => {
         const num = parseFloat(val);
-        payload[cat] = !isNaN(num) ? num : 0;
+        const catMax = CATEGORY_MAX_LIMITS[cat] || 100000;
+        payload[cat] = !isNaN(num) ? Math.min(num, catMax) : 0;
       });
 
       const res = await usersApi.updateCategoryLimits(payload);
@@ -125,40 +160,40 @@ const CategoryLimitsSettings = () => {
   return (
     <div className="glass-card p-5 sm:p-7 rounded-3xl border border-white/10 relative overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.08]">
-        <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-2xl border ${
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-black/5 dark:border-white/[0.08]">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className={`p-2.5 rounded-2xl border shrink-0 mt-0.5 sm:mt-0 ${
             isDark ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' : 'bg-[#EAF5F2] text-[#147D70] border-[#3BAE9F]/40'
           }`}>
             <Sliders size={22} />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 dark:text-white tracking-wide">
                 Category Spending Limits
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-400/30 whitespace-nowrap shrink-0">
                 High-Spending Alerts
               </span>
             </div>
-            <p className="text-xs text-[var(--text-muted)] font-medium mt-0.5">
-              Configure monthly budget ceilings. Cashio will automatically dispatch alerts when you reach <strong>50%</strong>, <strong>80%</strong>, or <strong>exceed (100%+)</strong> your category limits.
+            <p className="text-xs text-[var(--text-muted)] font-medium mt-1">
+              Configure monthly budget ceilings (category maximum limits range from {currencySymbol}20,000 to {currencySymbol}100,000). Cashio will automatically dispatch alerts when you reach <strong>50%</strong>, <strong>80%</strong>, or <strong>exceed (100%+)</strong> your category limits.
             </p>
           </div>
         </div>
 
         {/* Quick Month Overview */}
-        <div className="flex items-center gap-3 bg-black/20 px-4 py-2.5 rounded-2xl border border-white/[0.08] shrink-0">
+        <div className="flex items-center gap-3 bg-emerald-500/[0.08] dark:bg-black/20 px-4 py-2.5 rounded-2xl border border-emerald-600/20 dark:border-white/[0.08] shrink-0">
           <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Budget</span>
-            <span className="text-xs font-black text-emerald-400">
+            <span className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-400 block">Total Budget</span>
+            <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
               {formatCurrency(totalBudget, userCurrency)}
             </span>
           </div>
-          <div className="h-6 w-[1px] bg-white/10" />
+          <div className="h-6 w-[1px] bg-black/10 dark:bg-white/10" />
           <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Spent This Month</span>
-            <span className="text-xs font-black text-white">
+            <span className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-400 block">Spent This Month</span>
+            <span className="text-xs font-black text-slate-900 dark:text-white">
               {formatCurrency(totalSpentThisMonth, userCurrency)}
             </span>
           </div>
@@ -172,9 +207,9 @@ const CategoryLimitsSettings = () => {
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className="mt-4 p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-200 text-xs font-semibold flex items-center gap-2.5"
+            className="mt-4 p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 text-xs font-semibold flex items-center gap-2.5 shadow-sm dark:shadow-none"
           >
-            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+            <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>{successMessage}</span>
           </motion.div>
         )}
@@ -184,9 +219,9 @@ const CategoryLimitsSettings = () => {
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className="mt-4 p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-xs font-semibold flex items-center gap-2.5"
+            className="mt-4 p-3.5 rounded-2xl bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/30 text-rose-800 dark:text-rose-200 text-xs font-semibold flex items-center gap-2.5 shadow-sm dark:shadow-none"
           >
-            <AlertCircle size={16} className="text-rose-400 shrink-0" />
+            <AlertCircle size={16} className="text-rose-600 dark:text-rose-400 shrink-0" />
             <span>{errorMessage}</span>
           </motion.div>
         )}
@@ -222,50 +257,57 @@ const CategoryLimitsSettings = () => {
               return (
                 <div
                   key={cat.name}
-                  className={`p-3.5 rounded-2xl border transition-all duration-200 ${
+                  className={`p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 ${
                     isOver
-                      ? 'bg-rose-950/20 border-rose-500/35 shadow-rose-950/20'
+                      ? 'bg-rose-500/10 dark:bg-rose-950/20 border-rose-500/40 shadow-rose-950/20'
                       : isWarn
-                        ? 'bg-amber-950/20 border-amber-500/35'
+                        ? 'bg-amber-500/10 dark:bg-amber-950/20 border-amber-500/40'
                         : limitNum > 0
-                          ? 'bg-white/[0.02] border-white/10 hover:border-emerald-400/30'
-                          : 'bg-black/15 border-white/[0.05] hover:border-white/10'
+                          ? 'bg-emerald-500/[0.08] dark:bg-white/[0.02] border-emerald-500/35 dark:border-white/10 hover:border-emerald-400/40 shadow-sm dark:shadow-none'
+                          : 'bg-white dark:bg-black/15 border-[#CEE8E1] dark:border-white/[0.05] hover:border-emerald-500/30 dark:hover:border-white/10 shadow-sm dark:shadow-none'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2.5">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className={`p-2 rounded-xl ${cat.bg} ${cat.color} ${cat.border} border shrink-0`}>
                         <Icon size={16} />
                       </div>
-                      <div className="truncate">
-                        <span className="text-xs font-bold text-white block truncate">{cat.name}</span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          Spent: <strong className="text-white font-bold">{formatCurrency(spent, userCurrency)}</strong>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                            {cat.name}
+                          </span>
+                          <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold whitespace-nowrap">
+                            (Max {currencySymbol}{(CATEGORY_MAX_LIMITS[cat.name] || 100000).toLocaleString()})
+                          </span>
+                        </div>
+                        <span className="text-[10px] sm:text-[11px] text-slate-600 dark:text-slate-400 font-medium block mt-0.5">
+                          Spent: <strong className="text-slate-900 dark:text-white font-bold">{formatCurrency(spent, userCurrency)}</strong>
                         </span>
                       </div>
                     </div>
 
                     {/* Status Badge */}
-                    <div>
+                    <div className="self-start sm:self-auto shrink-0 pl-9 sm:pl-0">
                       {isOver ? (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1 animate-pulse">
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/40 flex items-center gap-1 animate-pulse">
                           <AlertTriangle size={10} />
                           <span>Exceeded</span>
                         </span>
                       ) : isWarn ? (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40">
                           80%+ Warning
                         </span>
                       ) : isHalf ? (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-teal-500/20 text-teal-300 border border-teal-500/40">
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-500/40">
                           50%+ Used
                         </span>
                       ) : limitNum > 0 ? (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-white/5 text-emerald-300 border border-emerald-400/20">
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-400/30">
                           {percent}% Used
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold text-slate-500">
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-white/10">
                           No Limit
                         </span>
                       )}
@@ -274,18 +316,19 @@ const CategoryLimitsSettings = () => {
 
                   {/* Input Field */}
                   <div className="relative mb-2">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-400">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-700 dark:text-emerald-400 pointer-events-none">
                       {currencySymbol}
                     </span>
                     <input
                       type="text"
-                      inputMode="decimal"
+                      inputMode="numeric"
+                      maxLength={6}
                       value={currentVal}
                       onChange={(e) => handleInputChange(cat.name, e.target.value)}
-                      placeholder="No limit set (e.g. 500)"
-                      className="w-full glass-inset pl-7 pr-16 py-2 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                      placeholder={`Max: ${currencySymbol}${(CATEGORY_MAX_LIMITS[cat.name] || 100000).toLocaleString()}`}
+                      className="w-full rounded-xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 pl-9 pr-16 py-2.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition-all"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400 uppercase">
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase pointer-events-none">
                       / month
                     </span>
                   </div>
@@ -326,7 +369,7 @@ const CategoryLimitsSettings = () => {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-white/[0.08]">
             <p className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
               <Info size={14} className="text-emerald-400 shrink-0" />
-              <span>Limits apply to calendar months and reset automatically on the 1st of each month.</span>
+              <span>Limits reset automatically on the 1st of each month. Category maximums range from {currencySymbol}20,000 to {currencySymbol}100,000.</span>
             </p>
 
             <button

@@ -9,6 +9,7 @@ import insightRoutes from './routes/insights.js';
 import userRoutes from './routes/users.js';
 import notificationRoutes from './routes/notifications.js';
 import { startNotificationScheduler } from './utils/pushScheduler.js';
+import { sanitizeInputs } from './middleware/sanitize.js';
 
 dotenv.config();
 
@@ -18,7 +19,13 @@ app.use(cors({
   origin: true,
   credentials: true
 }));
-app.use(express.json());
+
+// Reject oversized payloads (> 1MB)
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Sanitize all inputs against script injection and prototype pollution
+app.use(sanitizeInputs);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expenseRoutes);
@@ -28,8 +35,15 @@ app.use('/api/insights', insightRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({
+      success: false,
+      error: 'Payload size exceeds the 1MB limit. Please reduce the request size.'
+    });
+  }
+  console.error('[SERVER ERROR]:', err.message);
   res.status(500).json({ success: false, error: 'Internal Server Error' });
 });
 

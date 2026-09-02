@@ -3,20 +3,24 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Fallback VAPID keys for immediate local development if not in env
-const DEFAULT_VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BKU_2thwlK44Rovjnm2PrMU30q14G1vm11VV7JPEiVOhfHNnyFSaxIlrZ3zfY9VZKhj_6Ump_5REfOvyVdodeQo';
-const DEFAULT_VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'RJ0YHWonnJVlGnQYhilyjWwBROWv4T07iAS77L6AEgs';
+// Read VAPID keys strictly from environment variables
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:support@cashio.app';
 
-try {
-  webpush.setVapidDetails(
-    VAPID_SUBJECT,
-    DEFAULT_VAPID_PUBLIC_KEY,
-    DEFAULT_VAPID_PRIVATE_KEY
-  );
-  console.log('[WEB-PUSH] VAPID details initialized successfully');
-} catch (err) {
-  console.error('[WEB-PUSH INIT ERROR]:', err.message);
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(
+      VAPID_SUBJECT,
+      VAPID_PUBLIC_KEY,
+      VAPID_PRIVATE_KEY
+    );
+    console.log('[WEB-PUSH] VAPID details initialized successfully');
+  } catch (err) {
+    console.error('[WEB-PUSH INIT ERROR]:', err.message);
+  }
+} else {
+  console.warn('[WEB-PUSH WARNING] VAPID keys not configured in environment variables');
 }
 
 /**
@@ -30,7 +34,7 @@ const AUTOMATED_COOLDOWN_MS = 45 * 60 * 1000; // 45 minutes
  * Returns the public VAPID key to the frontend
  */
 export function getVapidPublicKey() {
-  return process.env.VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
+  return process.env.VAPID_PUBLIC_KEY || '';
 }
 
 /**

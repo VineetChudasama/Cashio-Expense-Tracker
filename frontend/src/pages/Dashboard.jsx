@@ -218,10 +218,10 @@ const Dashboard = () => {
         <div className="glass-card p-4 sm:p-6 lg:p-7 flex flex-col">
           <div className="flex justify-between items-center mb-4 sm:mb-5">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-wide">Recent Expenses</h2>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-wide">Recent Expenses</h2>
               <p className="text-xs text-emerald-800 dark:text-emerald-300/70 font-medium">Latest transactions</p>
             </div>
-            <Link to="/expenses" className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+            <Link to="/expenses" className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 flex items-center gap-1">
               <span>View All</span>
               <ArrowRight size={13} />
             </Link>
@@ -232,18 +232,18 @@ const Dashboard = () => {
               recentExpenses.map(expense => (
                 <div 
                   key={expense.id} 
-                  className="flex justify-between items-center p-3 rounded-2xl glass-elevated border border-white/[0.06] hover:border-emerald-400/30 transition-all duration-200"
+                  className="flex justify-between items-center p-3 rounded-2xl glass-elevated border border-black/5 dark:border-white/[0.06] hover:border-emerald-400/30 transition-all duration-200 gap-2"
                 >
-                  <div className="flex flex-col gap-0.5 overflow-hidden min-w-0 pr-2">
-                    <span className="font-bold text-xs sm:text-sm text-white truncate">{expense.description}</span>
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex flex-col gap-1 overflow-hidden min-w-0 flex-1">
+                    <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">{expense.description}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <CategoryBadge category={expense.category} />
-                      <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
                         {format(new Date(expense.date), 'MMM dd')}
                       </span>
                     </div>
                   </div>
-                  <div className="font-black text-xs sm:text-sm text-white shrink-0">
+                  <div className="font-black text-xs sm:text-sm text-slate-900 dark:text-white shrink-0 text-right">
                     {formatCurrency(expense.amount, userCurrency)}
                   </div>
                 </div>
