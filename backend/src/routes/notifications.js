@@ -244,17 +244,30 @@ router.post('/test', async (req, res) => {
     const title = isMobile ? '📱 Cashio Mobile Notification' : '💻 Cashio Desktop Notification';
     const body = `Notifications are verified and working on your ${isMobile ? 'phone' : 'computer'} (${deviceName})!`;
 
+    // 1. Create in-app notification record so it is always visible in the notification bell
+    await prisma.notification.create({
+      data: {
+        userId: req.user.id,
+        type: 'SYSTEM',
+        title,
+        message: body,
+        link: '/profile',
+        isRead: false
+      }
+    });
+
+    // 2. Dispatch Web Push notification to device(s)
     const result = await sendPushToUser({
       userId: req.user.id,
       type: 'SYSTEM',
       title,
       body,
-      icon: '/logo.png',
-      badge: '/logo.png',
+      icon: '/favicon.svg',
+      badge: '/favicon.svg',
       tag: `cashio-test-${Date.now()}`,
       targetEndpoint: clientEndpoint,
       data: {
-        url: '/dashboard',
+        url: '/profile',
         type: 'TEST',
         deviceType: effectiveDeviceType,
         deviceName

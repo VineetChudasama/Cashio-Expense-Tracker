@@ -54,8 +54,8 @@ self.addEventListener('push', (event) => {
 
   const notificationOptions = {
     body: notificationData.body,
-    icon: notificationData.icon || '/logo.png',
-    badge: notificationData.badge || '/logo.png',
+    icon: notificationData.icon || '/favicon.svg',
+    badge: notificationData.badge || '/favicon.svg',
     tag: notificationData.tag || `cashio-${Date.now()}`,
     data: notificationData.data || { url: '/dashboard' },
     renotify: true,
@@ -65,7 +65,13 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(notificationData.title, notificationOptions)
+    self.registration.showNotification(notificationData.title, notificationOptions).catch(err => {
+      console.warn('[SW SHOW NOTIFICATION RETRY]:', err);
+      return self.registration.showNotification(notificationData.title, {
+        body: notificationData.body,
+        data: notificationData.data
+      });
+    })
   );
 });
 
