@@ -233,55 +233,55 @@ const NotificationSettings = () => {
     <div className="glass-card p-5 sm:p-7 w-full">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.08] dark:border-white/[0.08] border-[#CEE8E1]/60">
-        <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-2xl border flex items-center justify-center ${
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className={`p-2.5 sm:p-3 rounded-2xl border flex items-center justify-center shrink-0 ${
             isDark
               ? 'bg-[#095348]/50 border-[#1F7669] text-[#72C4B9] shadow-[0_0_15px_rgba(114,196,185,0.15)]'
               : 'bg-[#EAF5F2] border-[#3BAE9F]/40 text-[#147D70] shadow-sm'
           }`}>
             <Bell size={20} />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-[#07241E]'}`}>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              <h2 className={`text-base sm:text-lg font-black tracking-tight leading-none ${isDark ? 'text-white' : 'text-[#07241E]'}`}>
                 Notifications
               </h2>
               {/* Device Detection Badge */}
-              <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold border flex items-center gap-1.5 ${
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border leading-none shrink-0 ${
                 isDark ? 'bg-white/5 border-white/10 text-emerald-300' : 'bg-[#EAF5F2] border-[#CEE8E1] text-[#147D70]'
               }`}>
-                {browserEnv.isMobile ? <Smartphone size={12} /> : <Laptop size={12} />}
-                <span>{browserEnv.deviceName || (browserEnv.isMobile ? 'Mobile Device' : 'Desktop / Laptop')}</span>
+                {browserEnv.isMobile ? <Smartphone size={12} className="shrink-0" /> : <Laptop size={12} className="shrink-0" />}
+                <span className="truncate max-w-[200px] sm:max-w-none">{browserEnv.deviceName || (browserEnv.isMobile ? 'Mobile Device' : 'Desktop / Laptop')}</span>
               </span>
             </div>
-            <p className={`text-xs font-medium mt-0.5 ${isDark ? 'text-[#72C4B9]/80' : 'text-[#1F7669]'}`}>
+            <p className={`text-xs font-medium mt-1.5 leading-relaxed ${isDark ? 'text-[#72C4B9]/80' : 'text-[#1F7669]'}`}>
               Manage device-specific alerts, evening expense reminders, and recurring payment warnings.
             </p>
           </div>
         </div>
 
         {/* Status Badge */}
-        <div className="self-start sm:self-auto">
+        <div className="self-start sm:self-auto shrink-0">
           {!supported && !browserEnv.requiresPwa ? (
-            <span className="px-3 py-1 rounded-xl text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+            <span className="px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 inline-flex items-center gap-1.5">
               Not Supported in this Browser
             </span>
           ) : permission === 'denied' ? (
-            <span className="px-3 py-1 rounded-xl text-[11px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center gap-1.5">
+            <span className="px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30 inline-flex items-center gap-1.5">
               <ShieldAlert size={13} />
               Blocked in Browser
             </span>
           ) : isSubscribed ? (
-            <span className={`px-3 py-1 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 ${
+            <span className={`px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-extrabold inline-flex items-center gap-1.5 ${
               isDark
                 ? 'bg-[#1F7669]/30 text-[#72C4B9] border border-[#72C4B9]/40 shadow-[0_0_12px_rgba(114,196,185,0.2)]'
                 : 'bg-[#EAF5F2] text-[#147D70] border border-[#3BAE9F]'
             }`}>
-              <CheckCircle2 size={13} />
+              <CheckCircle2 size={13} className="shrink-0" />
               Active on this {browserEnv.isMobile ? 'Phone' : 'Computer'}
             </span>
           ) : (
-            <span className={`px-3 py-1 rounded-xl text-[11px] font-bold ${
+            <span className={`px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold inline-flex items-center gap-1.5 ${
               isDark ? 'bg-white/5 text-slate-400 border border-white/10' : 'bg-[#EAF5F2] text-[#4F736C] border border-[#CEE8E1]'
             }`}>
               Disabled on this Device

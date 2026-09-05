@@ -266,6 +266,7 @@ router.post('/test', async (req, res) => {
       badge: '/favicon.svg',
       tag: `cashio-test-${Date.now()}`,
       targetEndpoint: clientEndpoint,
+      targetDeviceType: effectiveDeviceType,
       data: {
         url: '/profile',
         type: 'TEST',
