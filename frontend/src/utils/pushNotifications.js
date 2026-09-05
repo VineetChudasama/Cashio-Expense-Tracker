@@ -292,7 +292,8 @@ export async function subscribeToPushNotifications() {
   await registerServiceWorker();
   const registration = await navigator.serviceWorker.ready;
 
-  // 3. Fetch VAPID Public Key from backend or env
+  // 3. Fetch VAPID Public Key from env, backend API, or default key
+  const DEFAULT_VAPID_PUBLIC_KEY = 'BKU_2thwlK44Rovjnm2PrMU30q14G1vm11VV7JPEiVOhfHNnyFSaxIlrZ3zfY9VZKhj_6Ump_5REfOvyVdodeQo';
   let vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
   if (!vapidPublicKey) {
     try {
@@ -301,12 +302,12 @@ export async function subscribeToPushNotifications() {
         vapidPublicKey = res.data.publicKey;
       }
     } catch (err) {
-      console.warn('[VAPID FETCH WARNING]: Failed to fetch VAPID public key', err.message);
+      console.warn('[VAPID FETCH WARNING]: Failed to fetch VAPID public key from backend', err.message);
     }
   }
 
   if (!vapidPublicKey) {
-    throw new Error('Push notification server key is not available. Please try again later.');
+    vapidPublicKey = DEFAULT_VAPID_PUBLIC_KEY;
   }
 
   const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
