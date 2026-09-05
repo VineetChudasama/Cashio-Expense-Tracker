@@ -292,8 +292,7 @@ export async function subscribeToPushNotifications() {
   await registerServiceWorker();
   const registration = await navigator.serviceWorker.ready;
 
-  // 3. Fetch VAPID Public Key from env, backend API, or default key
-  const DEFAULT_VAPID_PUBLIC_KEY = 'BKU_2thwlK44Rovjnm2PrMU30q14G1vm11VV7JPEiVOhfHNnyFSaxIlrZ3zfY9VZKhj_6Ump_5REfOvyVdodeQo';
+  // 3. Fetch VAPID Public Key from environment variable or backend API
   let vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
   if (!vapidPublicKey) {
     try {
@@ -307,7 +306,7 @@ export async function subscribeToPushNotifications() {
   }
 
   if (!vapidPublicKey) {
-    vapidPublicKey = DEFAULT_VAPID_PUBLIC_KEY;
+    throw new Error('Push notification server key is not available. Please ensure VAPID keys are configured in environment variables.');
   }
 
   const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
