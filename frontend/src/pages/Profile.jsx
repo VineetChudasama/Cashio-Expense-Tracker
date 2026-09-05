@@ -555,7 +555,7 @@ const Profile = () => {
         className="glass-card p-5 sm:p-6 lg:p-8 relative overflow-hidden group hover:border-emerald-400/30 transition-all duration-300"
       >
         {/* Ambient top-corner gradient aura like Dashboard */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-emerald-500/10 via-teal-500/5 to-transparent rounded-bl-full pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute -top-10 -right-10 w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none opacity-50 group-hover:opacity-90 transition-opacity duration-300"></div>
 
         <div className="flex items-center sm:items-start gap-4 sm:gap-6 relative z-10">
           {/* Avatar (Click to open avatar picker modal) */}
@@ -828,7 +828,7 @@ const Profile = () => {
           transition={{ duration: 0.2 }}
           className="glass-card p-4 sm:p-5 border border-white/[0.06] hover:border-emerald-400/30 transition-all cursor-default relative overflow-hidden group"
         >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-bl-full pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute -top-6 -right-6 w-28 h-28 bg-emerald-500/15 rounded-full blur-2xl pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
           <div className="flex items-center gap-2 mb-1.5 sm:mb-2 relative z-10">
             <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-400/20 group-hover:scale-110 transition-transform">
               <CurrencyIcon currency={savedActiveCurrency} size={15} />
@@ -846,7 +846,7 @@ const Profile = () => {
           transition={{ duration: 0.2 }}
           className="glass-card p-4 sm:p-5 border border-white/[0.06] hover:border-cyan-400/30 transition-all cursor-default relative overflow-hidden group"
         >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-cyan-500/10 to-transparent rounded-bl-full pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute -top-6 -right-6 w-28 h-28 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
           <div className="flex items-center gap-2 mb-1.5 sm:mb-2 relative z-10">
             <div className="p-1.5 sm:p-2 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-400/20 group-hover:scale-110 transition-transform">
               <Receipt size={15} />
@@ -864,7 +864,7 @@ const Profile = () => {
           transition={{ duration: 0.2 }}
           className="glass-card p-4 sm:p-5 border border-white/[0.06] hover:border-teal-400/30 transition-all cursor-default relative overflow-hidden group"
         >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-teal-500/10 to-transparent rounded-bl-full pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute -top-6 -right-6 w-28 h-28 bg-teal-500/15 rounded-full blur-2xl pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
           <div className="flex items-center gap-2 mb-1.5 sm:mb-2 relative z-10">
             <div className="p-1.5 sm:p-2 rounded-xl bg-teal-500/15 text-teal-300 border border-teal-400/20 group-hover:scale-110 transition-transform">
               <Users size={15} />
@@ -882,7 +882,7 @@ const Profile = () => {
           transition={{ duration: 0.2 }}
           className="glass-card p-4 sm:p-5 border border-white/[0.06] hover:border-amber-400/30 transition-all cursor-default relative overflow-hidden group"
         >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-bl-full pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute -top-6 -right-6 w-28 h-28 bg-amber-500/15 rounded-full blur-2xl pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity"></div>
           <div className="flex items-center gap-2 mb-1.5 sm:mb-2 relative z-10">
             <div className="p-1.5 sm:p-2 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-400/20 group-hover:scale-110 transition-transform">
               <Award size={15} />

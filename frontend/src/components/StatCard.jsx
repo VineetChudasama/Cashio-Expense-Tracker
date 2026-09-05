@@ -5,23 +5,23 @@ const StatCard = ({ icon: Icon, label, value, subtext, color = 'emerald', varian
   const colorMap = {
     emerald: {
       badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-400/30 shadow-[0_0_20px_rgba(16,185,129,0.2)]',
-      glow: 'from-emerald-500/10 to-transparent'
+      glow: 'bg-emerald-500/15'
     },
     cyan: {
       badge: 'bg-cyan-500/15 text-cyan-300 border-cyan-400/30 shadow-[0_0_20px_rgba(6,182,212,0.2)]',
-      glow: 'from-cyan-500/10 to-transparent'
+      glow: 'bg-cyan-500/15'
     },
     amber: {
       badge: 'bg-amber-500/15 text-amber-300 border-amber-400/30 shadow-[0_0_20px_rgba(245,158,11,0.2)]',
-      glow: 'from-amber-500/10 to-transparent'
+      glow: 'bg-amber-500/15'
     },
     teal: {
       badge: 'bg-teal-500/15 text-teal-300 border-teal-400/30 shadow-[0_0_20px_rgba(20,184,166,0.2)]',
-      glow: 'from-teal-500/10 to-transparent'
+      glow: 'bg-teal-500/15'
     },
     indigo: {
       badge: 'bg-indigo-500/15 text-indigo-300 border-indigo-400/30 shadow-[0_0_20px_rgba(99,102,241,0.2)]',
-      glow: 'from-indigo-500/10 to-transparent'
+      glow: 'bg-indigo-500/15'
     }
   };
 
@@ -33,7 +33,7 @@ const StatCard = ({ icon: Icon, label, value, subtext, color = 'emerald', varian
       className="glass-card p-6 flex items-start gap-4 hover:translate-y-[-3px] relative overflow-hidden group"
     >
       {/* Subtle top-corner gradient aura */}
-      <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${scheme.glow} rounded-bl-full pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity`}></div>
+      <div className={`absolute -top-8 -right-8 w-36 h-36 ${scheme.glow} rounded-full blur-2xl pointer-events-none opacity-40 group-hover:opacity-90 transition-opacity`}></div>
 
       <div className={`p-3.5 rounded-2xl border backdrop-blur-md ${scheme.badge} flex-shrink-0 relative z-10 transition-transform group-hover:scale-105`}>
         <Icon size={22} />
